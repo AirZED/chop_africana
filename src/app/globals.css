@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf9f7;
+  --foreground: #1c1917;
 }
 
 @theme inline {
@@ -10,17 +10,139 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-playfair);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Matches the Figma spec for the brand's display serif: optical size 5 (its
+   most decorative/low cut) and width 112.5 (the "SemiExpanded" instance).
+   `font-optical-sizing: none` is required — with the default `auto`, the
+   browser overrides the explicit "opsz" value below and auto-scales it to
+   the rendered font-size instead, which produces a much thinner, more
+   "display" look than the design's deliberately low, chunkier opsz 5 cut. */
+.font-serif {
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 5, "wdth" 112.5;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior-y: none;
+}
+
+/* Input zoom prevention: iOS Safari force-zooms any text input under 16px. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Safe-area padding helper for floating sticky bars above the home-indicator/gesture bar. */
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Minimum interactive touch target per mobile guidelines. */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tactile press feedback for tappable elements. */
+.tap-press {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.tap-press:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(6px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease both;
+}
+.animate-rise-in {
+  animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-sheet-up {
+  animation: sheet-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-pop-in {
+  animation: pop-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-toast-in {
+  animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-rise-in,
+  .animate-sheet-up,
+  .animate-pop-in,
+  .animate-toast-in,
+  .tap-press {
+    animation: none;
+    transition: none;
+  }
 }

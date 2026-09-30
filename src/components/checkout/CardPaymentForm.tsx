@@ -6,7 +6,7 @@ import { formatGBP } from "@/lib/pricing";
 
 interface CardPaymentFormProps {
   total: number;
-  onSuccess: () => void;
+  onSuccess: (paymentIntentId: string) => void;
   onBack: () => void;
 }
 
@@ -52,7 +52,7 @@ export default function CardPaymentForm({ total, onSuccess, onBack }: CardPaymen
       } catch {
         // Non-fatal — the Stripe webhook (if configured) is the authoritative path.
       }
-      onSuccess();
+      onSuccess(paymentIntent.id);
     } else {
       setSubmitting(false);
     }

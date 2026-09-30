@@ -205,9 +205,9 @@ export default function CheckoutPage() {
                   total={total}
                   disabled={false}
                   onCreateIntent={createIntent}
-                  onSuccess={() => {
+                  onSuccess={(paymentIntentId) => {
                     clearCart();
-                    router.push("/confirmation");
+                    router.push(`/confirmation?payment_intent=${paymentIntentId}`);
                   }}
                 />
               </>

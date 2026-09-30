@@ -18,7 +18,7 @@ interface PaymentMethodSectionProps {
   disabled: boolean;
   /** Validates the earlier steps and creates the PaymentIntent server-side. Returns null (and sets its own error) on failure. */
   onCreateIntent: () => Promise<CreateIntentResult | null>;
-  onSuccess: () => void;
+  onSuccess: (paymentIntentId: string) => void;
 }
 
 const METHOD_META: Record<Method, { label: string; icon: React.ReactNode }> = {
@@ -118,7 +118,7 @@ export default function PaymentMethodSection({ total, disabled, onCreateIntent, 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
       }).catch(() => {});
-      onSuccess();
+      onSuccess(paymentIntent.id);
     });
 
     pr.canMakePayment().then((result) => {

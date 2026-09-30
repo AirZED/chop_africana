@@ -83,22 +83,26 @@ function MenuContent() {
       {error && <p className="mt-6 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-[180px_1fr]">
-        <nav className="flex gap-2 overflow-x-auto sm:flex-col sm:overflow-visible">
-          {menuCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => {
-                setActiveCategory(cat);
-                setQuery("");
-              }}
-              className={`tap-press shrink-0 rounded-lg px-4 py-2.5 text-left text-sm font-medium ${
-                !query && activeCategory === cat ? "bg-stone-200 text-stone-900" : "text-stone-600 hover:bg-stone-100"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </nav>
+        <div className="relative">
+          <nav className="flex gap-2 overflow-x-auto sm:flex-col sm:overflow-visible">
+            {menuCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setActiveCategory(cat);
+                  setQuery("");
+                }}
+                className={`tap-press shrink-0 rounded-lg px-4 py-2.5 text-left text-sm font-medium ${
+                  !query && activeCategory === cat ? "bg-stone-200 text-stone-900" : "text-stone-600 hover:bg-stone-100"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </nav>
+          {/* Scroll affordance: hints there are more categories off-screen on mobile, where this row scrolls horizontally instead of stacking. */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#faf9f7] to-transparent sm:hidden" />
+        </div>
 
         <div>
           {loading && items.length === 0 && (

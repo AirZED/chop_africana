@@ -4,7 +4,6 @@ import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import StepsCarousel from "@/components/site/StepsCarousel";
 import StoreLocator from "@/components/site/StoreLocator";
-import ImagePlaceholder from "@/components/ImagePlaceholder";
 
 export default function HomePage() {
   return (
@@ -15,7 +14,7 @@ export default function HomePage() {
         {/* Hero */}
         <section
           data-nav-bg="dark"
-          className="bg-[linear-gradient(to_bottom,#B0A2A1_0%,#CBBDBC_35%,#D9CBCC_70%,#DCCFCE_100%)] px-6 pb-10 pt-16 text-center sm:pt-24"
+          className="bg-[linear-gradient(to_bottom,#B0A2A1_0%,#CBBDBC_35%,#D9CBCC_70%,#DCCFCE_100%)] px-6 pb-10 pt-32 text-center md:pt-24"
         >
           <h1 className="mx-auto max-w-3xl font-serif text-4xl font-light leading-[1.1] tracking-[-0.03em] text-white drop-shadow-sm sm:text-6xl">
             Proper Pies 🥧, Baked In Your Own Oven.
@@ -85,7 +84,7 @@ export default function HomePage() {
         {/* Chicken Pies */}
         <section data-nav-bg="light" className="bg-white px-6 py-20">
           <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 md:grid-cols-2">
-            <div className="relative aspect-square md:order-1">
+            <div className="relative order-2 aspect-square md:order-1">
               <Image
                 src="/food/chicken_pie.png"
                 alt="Chicken pie, golden crust"
@@ -94,8 +93,8 @@ export default function HomePage() {
                 className="object-contain"
               />
             </div>
-            <div className="md:order-2">
-              <h2 className="font-serif text-[4.8rem] font-light tracking-[-0.03em] text-stone-900">
+            <div className="order-1 md:order-2">
+              <h2 className="font-serif text-5xl font-light tracking-[-0.03em] text-stone-900 md:text-[4.8rem]">
                 Chicken Pies
               </h2>
               <p className="mt-4 max-w-sm text-stone-600 text-[1.1rem]">

@@ -43,6 +43,8 @@ export interface ShopProduct {
   ingredients: string;
   allergens: string;
   bakingSteps: string[];
+  /** undefined/null = unlimited stock. 0 = sold out. */
+  stock?: number | null;
 }
 
 /** A single line in the unified cart — either a restaurant dish or a shop (pie) product. */

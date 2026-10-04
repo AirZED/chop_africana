@@ -16,6 +16,7 @@ interface ShopProductDoc {
   bakingSteps: string[];
   active: boolean;
   sortOrder: number;
+  stock: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,6 +32,8 @@ export interface ShopProductInput {
   allergens: string;
   bakingSteps: string[];
   active: boolean;
+  /** undefined/null = unlimited stock. */
+  stock?: number | null;
 }
 
 const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = [
@@ -53,6 +56,7 @@ const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = 
     ],
     active: true,
     sortOrder: 0,
+    stock: null,
   },
   {
     id: "shop-chicken-pie",
@@ -73,6 +77,7 @@ const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = 
     ],
     active: true,
     sortOrder: 1,
+    stock: null,
   },
 ];
 
@@ -96,6 +101,7 @@ async function getCollection(): Promise<Collection<ShopProductDoc>> {
         bakingSteps: p.bakingSteps,
         active: p.active,
         sortOrder: p.sortOrder,
+        stock: p.stock ?? null,
         createdAt: now,
         updatedAt: now,
       }))
@@ -104,7 +110,7 @@ async function getCollection(): Promise<Collection<ShopProductDoc>> {
   return collection;
 }
 
-function docToProduct(doc: ShopProductDoc): ShopProduct & { active: boolean } {
+function docToProduct(doc: ShopProductDoc): ShopProduct & { active: boolean; sortOrder: number } {
   return {
     productId: doc._id,
     name: doc.name,
@@ -116,7 +122,9 @@ function docToProduct(doc: ShopProductDoc): ShopProduct & { active: boolean } {
     ingredients: doc.ingredients,
     allergens: doc.allergens,
     bakingSteps: doc.bakingSteps,
+    stock: doc.stock ?? null,
     active: doc.active,
+    sortOrder: doc.sortOrder,
   };
 }
 
@@ -127,7 +135,7 @@ export async function listActiveShopProducts(): Promise<ShopProduct[]> {
 }
 
 /** All shop products including inactive — used by the admin panel. */
-export async function listAllShopProducts(): Promise<(ShopProduct & { active: boolean })[]> {
+export async function listAllShopProducts(): Promise<(ShopProduct & { active: boolean; sortOrder: number })[]> {
   const collection = await getCollection();
   const docs = await collection.find({}).sort({ sortOrder: 1, name: 1 }).toArray();
   return docs.map(docToProduct);
@@ -167,6 +175,7 @@ export async function createShopProduct(input: ShopProductInput): Promise<string
     bakingSteps: input.bakingSteps,
     active: input.active,
     sortOrder: (max ?? -1) + 1,
+    stock: input.stock ?? null,
     createdAt: now,
     updatedAt: now,
   });
@@ -190,6 +199,7 @@ export async function updateShopProduct(id: string, input: ShopProductInput): Pr
         allergens: input.allergens,
         bakingSteps: input.bakingSteps,
         active: input.active,
+        stock: input.stock ?? null,
         updatedAt: new Date().toISOString(),
       },
     }
@@ -201,4 +211,70 @@ export async function deleteShopProduct(id: string): Promise<boolean> {
   const collection = await getCollection();
   const result = await collection.deleteOne({ _id: id });
   return result.deletedCount > 0;
+}
+
+export async function bulkSetShopProductsActive(ids: string[], active: boolean): Promise<number> {
+  const collection = await getCollection();
+  const result = await collection.updateMany(
+    { _id: { $in: ids } },
+    { $set: { active, updatedAt: new Date().toISOString() } }
+  );
+  return result.modifiedCount;
+}
+
+/** Swaps sortOrder with the immediate neighbor in the given direction, for simple up/down reordering in the admin list. */
+export async function moveShopProduct(id: string, direction: "up" | "down"): Promise<boolean> {
+  const collection = await getCollection();
+  const current = await collection.findOne({ _id: id });
+  if (!current) return false;
+
+  const neighbor = await collection.findOne(
+    { sortOrder: direction === "up" ? { $lt: current.sortOrder } : { $gt: current.sortOrder } },
+    { sort: { sortOrder: direction === "up" ? -1 : 1 } }
+  );
+  if (!neighbor) return false;
+
+  await collection.updateOne({ _id: current._id }, { $set: { sortOrder: neighbor.sortOrder } });
+  await collection.updateOne({ _id: neighbor._id }, { $set: { sortOrder: current.sortOrder } });
+  return true;
+}
+
+/** Checks every shop line in a cart against current stock without mutating anything — used at checkout time. */
+export async function checkStockAvailable(
+  lines: { productId: string; quantity: number }[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const collection = await getCollection();
+  for (const line of lines) {
+    const doc = await collection.findOne({ _id: line.productId });
+    if (!doc) return { ok: false, error: `Unknown product: ${line.productId}` };
+    if (doc.stock !== null && doc.stock !== undefined && doc.stock < line.quantity) {
+      return {
+        ok: false,
+        error: doc.stock === 0 ? `${doc.name} is sold out` : `Only ${doc.stock} of ${doc.name} left`,
+      };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Atomically decrements stock, never going below zero. A no-op (returns true) for
+ * products with unlimited stock (stock is null/unset). Guarded by a filter so
+ * concurrent orders can't oversell past zero.
+ */
+export async function decrementStock(productId: string, quantity: number): Promise<boolean> {
+  const collection = await getCollection();
+
+  // Unlimited stock (null) needs no decrement — and $inc on a null field would error.
+  const unlimited = await collection.updateOne(
+    { _id: productId, stock: null },
+    { $set: { updatedAt: new Date().toISOString() } }
+  );
+  if (unlimited.matchedCount > 0) return true;
+
+  const result = await collection.updateOne(
+    { _id: productId, stock: { $gte: quantity } },
+    { $inc: { stock: -quantity }, $set: { updatedAt: new Date().toISOString() } }
+  );
+  return result.matchedCount > 0;
 }

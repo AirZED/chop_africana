@@ -23,6 +23,7 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
   const [allergens, setAllergens] = useState(initial?.allergens ?? "");
   const [bakingSteps, setBakingSteps] = useState(initial?.bakingSteps.join("\n") ?? "");
   const [active, setActive] = useState(initial?.active ?? true);
+  const [stock, setStock] = useState(initial?.stock != null ? String(initial.stock) : "");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,9 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
     const priceNum = Number(price);
     if (!name.trim()) return setError("Name is required");
     if (!Number.isFinite(priceNum) || priceNum < 0) return setError("Price must be a valid number");
+    if (stock.trim() && (!Number.isInteger(Number(stock)) || Number(stock) < 0)) {
+      return setError("Stock must be a non-negative whole number, or left blank for unlimited");
+    }
 
     const payload = {
       name: name.trim(),
@@ -49,6 +53,7 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
         .map((s) => s.trim())
         .filter(Boolean),
       active,
+      stock: stock.trim() ? Number(stock) : null,
     };
 
     setSubmitting(true);
@@ -125,6 +130,17 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
               onChange={(e) => setEmoji(e.target.value)}
               className="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-center text-lg outline-none focus:border-[#A61400] focus:ring-2 focus:ring-[#A61400]/10"
               placeholder="🥧"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-stone-600">Stock (optional)</span>
+            <input
+              type="number"
+              min="0"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 outline-none focus:border-[#A61400] focus:ring-2 focus:ring-[#A61400]/10"
+              placeholder="Unlimited"
             />
           </label>
           <div className="flex items-center pt-6">

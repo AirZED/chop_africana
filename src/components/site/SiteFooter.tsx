@@ -14,6 +14,7 @@ const RESTAURANT_LINKS = [
   { label: "Menu", href: "/menu" },
   { label: "Graduation packages", href: "/#graduation" },
   { label: "Find us", href: "/#find-in-store" },
+  { label: "Track order", href: "/track-order" },
 ];
 
 const SOCIALS = [

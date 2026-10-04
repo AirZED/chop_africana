@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
-import { markOrderStatus } from "@/lib/order-service";
+import { finalizeOrderPayment, markOrderStatus } from "@/lib/order-service";
 
 // Kitchen dispatch: routes paid tickets to a kitchen display / POS bridge / printer.
 // Swap the body of the payment_intent.succeeded case for a real integration
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case "payment_intent.succeeded": {
       const intent = event.data.object as Stripe.PaymentIntent;
-      markOrderStatus(intent.id, "paid");
+      await finalizeOrderPayment(intent.id);
       console.log("[kitchen-dispatch] New paid ticket:", {
         id: intent.id,
         amount: intent.amount,

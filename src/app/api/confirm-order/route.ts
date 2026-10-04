@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-import { markOrderStatus } from "@/lib/order-service";
+import { finalizeOrderPayment, markOrderStatus } from "@/lib/order-service";
 
 // Fallback confirmation path for local/dev environments where a Stripe webhook
 // listener isn't running. The client calls this right after stripe.confirmPayment()
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe();
     const intent = await stripe.paymentIntents.retrieve(body.paymentIntentId);
     if (intent.status === "succeeded") {
-      markOrderStatus(intent.id, "paid");
+      await finalizeOrderPayment(intent.id);
     } else if (intent.status === "canceled") {
       markOrderStatus(intent.id, "failed");
     }

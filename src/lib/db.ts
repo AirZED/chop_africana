@@ -31,7 +31,13 @@ function createDb(): Database.Database {
       address TEXT,
       subtotal_cents INTEGER NOT NULL,
       delivery_cents INTEGER NOT NULL DEFAULT 0,
+      discount_code TEXT,
+      discount_cents INTEGER NOT NULL DEFAULT 0,
       total_cents INTEGER NOT NULL,
+      -- Guards the side effects (stock decrement, confirmation email) that run when an
+      -- order first becomes paid, so they fire exactly once regardless of whether the
+      -- Stripe webhook or the client's best-effort confirm-order call gets there first.
+      fulfilled_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -48,11 +54,23 @@ function createDb(): Database.Database {
       selections_summary TEXT NOT NULL DEFAULT ''
     );
 
+    -- Every status transition an order goes through, for the admin order-detail
+    -- timeline and the customer-facing tracking page.
+    CREATE TABLE IF NOT EXISTS order_status_history (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      changed_by TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
     CREATE INDEX IF NOT EXISTS idx_orders_channel ON orders(channel);
     CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
     CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
     CREATE INDEX IF NOT EXISTS idx_order_items_ref ON order_items(ref_id);
+    CREATE INDEX IF NOT EXISTS idx_order_status_history_order ON order_status_history(order_id);
   `);
 
   return db;

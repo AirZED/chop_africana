@@ -10,6 +10,47 @@ interface ImageUploadFieldProps {
   folder: "menu" | "shop";
 }
 
+/**
+ * Downscales and re-encodes large JPEGs before upload. PNGs (used for the transparent
+ * product cutouts throughout this app) and other formats pass through untouched —
+ * re-encoding as JPEG would flatten their transparency onto a solid background.
+ */
+async function compressImage(file: File, maxDimension = 1600, quality = 0.85): Promise<File> {
+  if (file.type !== "image/jpeg") return file;
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;
+  }
+
+  if (bitmap.width <= maxDimension && bitmap.height <= maxDimension) {
+    bitmap.close();
+    return file;
+  }
+
+  const scale = maxDimension / Math.max(bitmap.width, bitmap.height);
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+  if (!blob) return file;
+
+  return new File([blob], file.name, { type: "image/jpeg" });
+}
+
 export default function ImageUploadField({ label, value, onChange, folder }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -19,8 +60,9 @@ export default function ImageUploadField({ label, value, onChange, folder }: Ima
     setUploading(true);
     setError(null);
     try {
+      const compressed = await compressImage(file).catch(() => file);
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", compressed);
       form.append("folder", folder);
       const res = await fetch("/api/admin/upload", { method: "POST", body: form });
       const data = await res.json();

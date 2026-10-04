@@ -18,6 +18,13 @@ export function validateShopProductInput(body: unknown): { input?: ShopProductIn
   if (!Array.isArray(b.bakingSteps) || b.bakingSteps.some((s) => typeof s !== "string")) {
     return { error: "bakingSteps must be an array of strings" };
   }
+  if (
+    b.stock !== undefined &&
+    b.stock !== null &&
+    (typeof b.stock !== "number" || !Number.isInteger(b.stock) || b.stock < 0)
+  ) {
+    return { error: "stock must be a non-negative whole number, or left blank for unlimited" };
+  }
 
   return {
     input: {
@@ -31,6 +38,7 @@ export function validateShopProductInput(body: unknown): { input?: ShopProductIn
       allergens: (b.allergens as string).trim(),
       bakingSteps: (b.bakingSteps as string[]).map((s) => s.trim()).filter(Boolean),
       active: b.active,
+      stock: typeof b.stock === "number" ? b.stock : null,
     },
   };
 }

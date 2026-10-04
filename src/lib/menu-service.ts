@@ -286,3 +286,29 @@ export async function deleteMenuItem(id: string): Promise<boolean> {
   const result = await collection.deleteOne({ _id: id });
   return result.deletedCount > 0;
 }
+
+export async function bulkSetMenuItemsActive(ids: string[], active: boolean): Promise<number> {
+  const collection = await getCollection();
+  const result = await collection.updateMany(
+    { _id: { $in: ids } },
+    { $set: { active, updatedAt: new Date().toISOString() } }
+  );
+  return result.modifiedCount;
+}
+
+/** Swaps sortOrder with the immediate neighbor in the given direction, for simple up/down reordering in the admin list. */
+export async function moveMenuItem(id: string, direction: "up" | "down"): Promise<boolean> {
+  const collection = await getCollection();
+  const current = await collection.findOne({ _id: id });
+  if (!current) return false;
+
+  const neighbor = await collection.findOne(
+    { sortOrder: direction === "up" ? { $lt: current.sortOrder } : { $gt: current.sortOrder } },
+    { sort: { sortOrder: direction === "up" ? -1 : 1 } }
+  );
+  if (!neighbor) return false;
+
+  await collection.updateOne({ _id: current._id }, { $set: { sortOrder: neighbor.sortOrder } });
+  await collection.updateOne({ _id: neighbor._id }, { $set: { sortOrder: current.sortOrder } });
+  return true;
+}

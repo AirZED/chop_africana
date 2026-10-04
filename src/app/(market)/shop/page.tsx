@@ -40,25 +40,37 @@ export default function ShopPage() {
             href={`/shop/${product.productId}`}
             className="tap-press group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
           >
-            {product.image ?? SHOP_PRODUCT_IMAGES[product.productId] ? (
-              <div className="relative aspect-square bg-stone-50">
-                <Image
-                  src={product.image ?? SHOP_PRODUCT_IMAGES[product.productId]}
-                  alt={product.name}
-                  fill
-                  sizes="(min-width: 640px) 45vw, 90vw"
-                  className="object-contain"
+            <div className="relative">
+              {product.image ?? SHOP_PRODUCT_IMAGES[product.productId] ? (
+                <div className="relative aspect-square bg-stone-50">
+                  <Image
+                    src={product.image ?? SHOP_PRODUCT_IMAGES[product.productId]}
+                    alt={product.name}
+                    fill
+                    sizes="(min-width: 640px) 45vw, 90vw"
+                    className="object-contain"
+                  />
+                </div>
+              ) : (
+                <ImagePlaceholder
+                  label={product.name}
+                  filename={`${product.productId}.jpg`}
+                  className="aspect-square"
+                  rounded="rounded-none"
+                  bordered={false}
                 />
-              </div>
-            ) : (
-              <ImagePlaceholder
-                label={product.name}
-                filename={`${product.productId}.jpg`}
-                className="aspect-square"
-                rounded="rounded-none"
-                bordered={false}
-              />
-            )}
+              )}
+              {product.stock === 0 && (
+                <span className="absolute left-3 top-3 rounded-full bg-stone-900/90 px-2.5 py-1 text-xs font-semibold text-white">
+                  Sold out
+                </span>
+              )}
+              {product.stock !== undefined && product.stock !== null && product.stock > 0 && product.stock <= 5 && (
+                <span className="absolute left-3 top-3 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white">
+                  Only {product.stock} left
+                </span>
+              )}
+            </div>
             <div className="p-5">
               <h2 className="text-lg font-semibold text-stone-900">{product.name}</h2>
               <p className="mt-1 line-clamp-2 text-sm text-stone-500">{product.description}</p>

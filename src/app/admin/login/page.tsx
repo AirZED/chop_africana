@@ -8,7 +8,7 @@ import { restaurant } from "@/lib/menu-data";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/admin/products";
+  const next = searchParams.get("next");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +27,7 @@ function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Login failed");
-      router.push(next);
+      router.push(next ?? (data.role === "staff" ? "/admin/orders" : "/admin/products"));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

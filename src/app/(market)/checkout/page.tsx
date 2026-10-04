@@ -11,6 +11,7 @@ import { cartSubtotal, deliveryFee, findProductIn, lineTotal } from "@/lib/cart-
 import { findItemIn, formatGBP } from "@/lib/pricing";
 import { restaurant } from "@/lib/menu-data";
 import { FulfillmentMode } from "@/lib/types";
+import { DELIVERY_ZONE_DESCRIPTION } from "@/lib/delivery-zone";
 import PaymentMethodSection from "@/components/checkout/PaymentMethodSection";
 
 export default function CheckoutPage() {
@@ -40,6 +41,11 @@ export default function CheckoutPage() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const configMissing = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
+  const [promoInput, setPromoInput] = useState("");
+  const [discount, setDiscount] = useState<{ code: string; amount: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [applyingPromo, setApplyingPromo] = useState(false);
+
   useEffect(() => {
     fetchMenu();
     fetchShop();
@@ -51,7 +57,29 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => cartSubtotal(items, menu, shop), [items, menu, shop]);
   const delivery = deliveryFee(table ? "dine-in" : fulfillment);
-  const total = subtotal + delivery;
+  const discountAmount = discount?.amount ?? 0;
+  const total = Math.max(0, subtotal + delivery - discountAmount);
+
+  async function applyPromoCode() {
+    if (!promoInput.trim()) return;
+    setApplyingPromo(true);
+    setPromoError(null);
+    try {
+      const res = await fetch("/api/checkout/validate-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoInput.trim(), subtotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "That code isn't valid.");
+      setDiscount({ code: data.code, amount: data.discount });
+    } catch (err) {
+      setDiscount(null);
+      setPromoError(err instanceof Error ? err.message : "That code isn't valid.");
+    } finally {
+      setApplyingPromo(false);
+    }
+  }
 
   async function createIntent() {
     setFieldError(null);
@@ -78,6 +106,7 @@ export default function CheckoutPage() {
           phone: localPhone.trim(),
           email: localEmail.trim(),
           items,
+          discountCode: discount?.code,
         }),
       });
       const data = await res.json();
@@ -135,6 +164,7 @@ export default function CheckoutPage() {
                     <p className="mt-2 text-sm text-stone-500">
                       Delivery fee: {formatGBP(deliveryFee("delivery"))}. Arrives in 30–50 min
                     </p>
+                    <p className="mt-1 text-xs text-stone-400">We currently deliver within {DELIVERY_ZONE_DESCRIPTION}.</p>
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-stone-200 bg-white px-4 py-3">
@@ -262,10 +292,52 @@ export default function CheckoutPage() {
           </div>
 
           <div className="mt-4 border-t border-stone-200 pt-4">
+            {discount ? (
+              <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                <span className="font-mono font-semibold">{discount.code}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDiscount(null);
+                    setPromoInput("");
+                  }}
+                  className="text-xs font-medium underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  placeholder="Promo code"
+                  className="w-full rounded-full border border-stone-300 px-4 py-2 text-sm outline-none focus:border-[#A61400] focus:ring-2 focus:ring-red-100"
+                />
+                <button
+                  type="button"
+                  onClick={applyPromoCode}
+                  disabled={applyingPromo || !promoInput.trim()}
+                  className="tap-press shrink-0 rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 disabled:opacity-50"
+                >
+                  {applyingPromo ? "…" : "Apply"}
+                </button>
+              </div>
+            )}
+            {promoError && <p className="mt-1.5 text-xs text-red-600">{promoError}</p>}
+          </div>
+
+          <div className="mt-4 border-t border-stone-200 pt-4">
             <div className="flex justify-between text-stone-600">
               <span>Subtotal</span>
               <span>{formatGBP(subtotal)}</span>
             </div>
+            {discount && (
+              <div className="mt-1 flex justify-between text-stone-600">
+                <span>Discount</span>
+                <span>-{formatGBP(discountAmount)}</span>
+              </div>
+            )}
             {delivery > 0 && (
               <div className="mt-1 flex justify-between text-stone-600">
                 <span>Delivery</span>

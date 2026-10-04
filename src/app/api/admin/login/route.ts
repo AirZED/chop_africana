@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
 
-  let ok: boolean;
+  let user: { email: string; role: "owner" | "staff" } | null;
   try {
-    ok = await verifyAdminCredentials(body.email, body.password);
+    user = await verifyAdminCredentials(body.email, body.password);
   } catch (err) {
     console.error("Admin login failed", err);
     return NextResponse.json(
@@ -25,12 +25,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!ok) {
+  if (!user) {
     return NextResponse.json({ error: "Incorrect email or password" }, { status: 401 });
   }
 
-  const token = await createSessionToken();
-  const res = NextResponse.json({ ok: true });
+  const token = await createSessionToken(user);
+  const res = NextResponse.json({ ok: true, role: user.role });
   res.cookies.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

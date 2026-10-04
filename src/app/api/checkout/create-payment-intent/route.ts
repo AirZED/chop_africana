@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { recomputeCartServerTotal } from "@/lib/cart-pricing";
 import { listActiveMenuItems, getMenuItemById } from "@/lib/menu-service";
-import { listActiveShopProducts, getShopProductById } from "@/lib/shop-service";
+import { listActiveShopProducts, getShopProductById, checkStockAvailable } from "@/lib/shop-service";
 import { createOrder } from "@/lib/order-service";
+import { validateDiscountCode, recordDiscountUsage } from "@/lib/discount-service";
+import { isAddressInDeliveryZone, DELIVERY_ZONE_DESCRIPTION } from "@/lib/delivery-zone";
 import { CartLine, FulfillmentMode } from "@/lib/types";
 
 interface RequestBody {
@@ -14,6 +16,7 @@ interface RequestBody {
   phone: string;
   email: string;
   items: CartLine[];
+  discountCode?: string;
 }
 
 const VALID_FULFILLMENT: FulfillmentMode[] = ["delivery", "pickup", "dine-in"];
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { fulfillment, table, address, fullName, phone, email, items } = body;
+  const { fulfillment, table, address, fullName, phone, email, items, discountCode } = body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -43,6 +46,12 @@ export async function POST(req: NextRequest) {
   if (fulfillment === "dine-in" && !table?.trim()) {
     return NextResponse.json({ error: "Table number is required for dine-in orders" }, { status: 400 });
   }
+  if (fulfillment === "delivery" && !isAddressInDeliveryZone(address!)) {
+    return NextResponse.json(
+      { error: `Sorry, we only deliver within ${DELIVERY_ZONE_DESCRIPTION} right now.` },
+      { status: 400 }
+    );
+  }
 
   // Only active, admin-managed items may be ordered — re-checked against a fresh
   // read of the catalogs so a just-deactivated item or price change can't slip through.
@@ -55,12 +64,28 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const shopLines = items.filter((l) => l.kind === "shop").map((l) => ({ productId: l.refId, quantity: l.quantity }));
+  if (shopLines.length > 0) {
+    const stock = await checkStockAvailable(shopLines);
+    if (!stock.ok) return NextResponse.json({ error: stock.error }, { status: 400 });
+  }
+
   const [menu, shop] = await Promise.all([listActiveMenuItems(), listActiveShopProducts()]);
-  const { subtotal, delivery, total, error } = recomputeCartServerTotal(items, menu, shop, fulfillment);
+  const { subtotal, delivery, error } = recomputeCartServerTotal(items, menu, shop, fulfillment);
   if (error) {
     return NextResponse.json({ error }, { status: 400 });
   }
 
+  let discount = 0;
+  let appliedCode: string | null = null;
+  if (discountCode?.trim()) {
+    const result = await validateDiscountCode(discountCode, subtotal);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    discount = result.discount;
+    appliedCode = result.code;
+  }
+
+  const total = Math.max(0, subtotal + delivery - discount);
   const amountInCents = Math.round(total * 100);
   if (amountInCents < 50) {
     return NextResponse.json({ error: "Order total is too low to process" }, { status: 400 });
@@ -91,6 +116,7 @@ export async function POST(req: NextRequest) {
         phone,
         address: address ?? "",
         items: itemSummary,
+        discountCode: appliedCode ?? "",
       },
     });
 
@@ -107,8 +133,16 @@ export async function POST(req: NextRequest) {
       shop,
       subtotal,
       delivery,
+      discountCode: appliedCode,
+      discount,
       total,
     });
+
+    if (appliedCode) {
+      await recordDiscountUsage(appliedCode).catch((err) =>
+        console.error("Failed to record discount usage", err)
+      );
+    }
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret, total });
   } catch (err) {

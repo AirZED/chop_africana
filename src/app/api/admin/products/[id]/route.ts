@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteMenuItem, getMenuItemById, updateMenuItem } from "@/lib/menu-service";
 import { validateMenuItemInput } from "@/lib/menu-item-validation";
+import { getSessionFromRequest } from "@/lib/admin-auth";
+import { recordAudit } from "@/lib/audit-service";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,12 +25,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const ok = await updateMenuItem(id, input);
   if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const session = await getSessionFromRequest(req);
+  await recordAudit({
+    adminEmail: session?.email ?? "admin",
+    action: "menu_item.update",
+    target: "menu_item",
+    targetId: id,
+    details: input.name,
+  });
+
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ok = await deleteMenuItem(id);
   if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const session = await getSessionFromRequest(req);
+  await recordAudit({ adminEmail: session?.email ?? "admin", action: "menu_item.delete", target: "menu_item", targetId: id });
+
   return NextResponse.json({ ok: true });
 }

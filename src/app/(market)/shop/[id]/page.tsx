@@ -59,6 +59,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   const photo = product.image ?? SHOP_PRODUCT_IMAGES[product.productId];
   const gallery = photo ? [photo, photo, photo, photo] : [];
+  const soldOut = product.stock === 0;
+  const maxQuantity = product.stock !== undefined && product.stock !== null ? Math.min(20, product.stock) : 20;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
@@ -111,19 +113,29 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
           <p className="mt-4 max-w-md capitalize text-stone-600">{product.description}</p>
 
+          {soldOut ? (
+            <p className="mt-4 inline-block rounded-full bg-stone-900 px-3 py-1 text-sm font-semibold text-white">Sold out</p>
+          ) : (
+            product.stock !== undefined && product.stock !== null && product.stock <= 5 && (
+              <p className="mt-4 text-sm font-semibold text-amber-600">Only {product.stock} left</p>
+            )
+          )}
+
           <div className="mt-8 flex items-center justify-between">
             <div className="flex items-center gap-3 rounded-full border border-stone-300 px-2 py-1.5">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="tap-press flex size-8 items-center justify-center rounded-full text-stone-700"
+                disabled={soldOut}
+                className="tap-press flex size-8 items-center justify-center rounded-full text-stone-700 disabled:opacity-40"
                 aria-label="Decrease quantity"
               >
                 −
               </button>
               <span className="w-5 text-center font-semibold">{quantity}</span>
               <button
-                onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                className="tap-press flex size-8 items-center justify-center rounded-full text-stone-700"
+                onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                disabled={soldOut}
+                className="tap-press flex size-8 items-center justify-center rounded-full text-stone-700 disabled:opacity-40"
                 aria-label="Increase quantity"
               >
                 +
@@ -139,9 +151,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               addShopItem(product.productId, quantity);
               setAdded(true);
             }}
-            className="tap-press mt-6 w-full rounded-full bg-[#A61400] px-6 py-4 font-semibold text-white shadow-sm"
+            disabled={soldOut}
+            className="tap-press mt-6 w-full rounded-full bg-[#A61400] px-6 py-4 font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Add to cart
+            {soldOut ? "Sold out" : "Add to cart"}
           </button>
           {added && (
             <p className="mt-3 text-sm text-emerald-600">

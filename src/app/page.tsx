@@ -14,7 +14,7 @@ export default function HomePage() {
         {/* Hero */}
         <section
           data-nav-bg="dark"
-          className="bg-[linear-gradient(to_bottom,#B0A2A1_0%,#CBBDBC_35%,#D9CBCC_70%,#DCCFCE_100%)] px-6 pb-10 pt-32 text-center md:pt-24"
+          className="bg-[linear-gradient(to_bottom,#B0A2A1_0%,#CBBDBC_35%,#D9CBCC_70%,#DCCFCE_100%)] px-6 pb-10 pt-24 text-center"
         >
           <h1 className="mx-auto max-w-3xl font-serif text-4xl font-light leading-[1.1] tracking-[-0.03em] text-white drop-shadow-sm sm:text-6xl">
             Proper Pies 🥧, Baked In Your Own Oven.

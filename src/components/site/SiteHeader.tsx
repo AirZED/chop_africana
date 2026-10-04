@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { restaurant } from "@/lib/menu-data";
-import { CartIcon } from "./icons";
+import { CartIcon, CloseIcon, MenuIcon } from "./icons";
 
 type NavBg = "dark" | "light";
 
@@ -20,6 +20,11 @@ export default function SiteHeader() {
   // "dark" = header is over a dark background -> use white items
   // "light" = header is over a light background -> use dark items
   const [bg, setBg] = useState<NavBg>("dark");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let frame = 0;
@@ -63,8 +68,9 @@ export default function SiteHeader() {
       ref={headerRef}
       className="fixed top-0 z-30 w-full bg-transparent backdrop-blur"
     >
-      {/* 3-column grid keeps the logo truly centered */}
-      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center px-16 py-4">
+      {/* Mobile: logo far left, cart+menu far right (justify-between).
+          Desktop (md+): 3-column grid keeps the logo truly centered. */}
+      <div className="flex w-full items-center justify-between px-4 py-4 sm:px-16 md:grid md:grid-cols-[1fr_auto_1fr]">
         <nav
           className={`hidden items-center gap-8 text-sm font-medium transition-colors duration-300 md:flex ${text}`}
         >
@@ -81,10 +87,8 @@ export default function SiteHeader() {
             </span>
           </span>
         </nav>
-        {/* keeps the logo centered on mobile where the nav is hidden */}
-        <span className="md:hidden" />
 
-        <Link href="/" className="justify-self-center">
+        <Link href="/" className="md:justify-self-center">
           <Image
             src="/whiter_logo.png"
             alt={restaurant.name}
@@ -97,33 +101,54 @@ export default function SiteHeader() {
           />
         </Link>
 
-        <Link
-          href="/cart"
-          className="tap-press flex items-center gap-2 justify-self-end rounded-full bg-[#111] px-5 py-2.5 text-sm font-semibold text-white"
-        >
-          <CartIcon className="size-4" />
-          Cart
-          {cartCount > 0 && (
-            <span className="flex size-5 items-center justify-center rounded-full bg-orange-600 text-xs text-white">
-              {cartCount}
-            </span>
-          )}
-        </Link>
+        <div className="flex items-center gap-3 md:justify-self-end">
+          <Link
+            href="/cart"
+            className="tap-press flex items-center gap-2 rounded-full bg-[#111] px-5 py-2.5 text-sm font-semibold text-white"
+          >
+            <CartIcon className="size-4" />
+            Cart
+            {cartCount > 0 && (
+              <span className="flex size-5 items-center justify-center rounded-full bg-orange-600 text-xs text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            className={`tap-press flex size-11 items-center justify-center rounded-full transition-colors duration-300 md:hidden ${text}`}
+          >
+            {menuOpen ? <CloseIcon className="size-6" /> : <MenuIcon className="size-6" />}
+          </button>
+        </div>
       </div>
 
-      <nav
-        className={`flex items-center gap-4 overflow-x-auto px-6 pb-3 text-sm font-medium transition-colors duration-300 md:hidden ${text}`}
-      >
-        <Link href="/" className="tap-press whitespace-nowrap">
-          Home
-        </Link>
-        <Link href="/menu" className="tap-press whitespace-nowrap">
-          Restaurant menu
-        </Link>
-        <span className={`whitespace-nowrap ${textMuted}`}>
-          Graduation · Soon
-        </span>
-      </nav>
+      {menuOpen && (
+        <nav className="mx-4 mb-4 flex flex-col gap-1 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl md:hidden">
+          <Link
+            href="/"
+            className="tap-press rounded-xl px-4 py-3 text-base font-medium text-stone-900 hover:bg-stone-100"
+          >
+            Home
+          </Link>
+          <Link
+            href="/menu"
+            className="tap-press rounded-xl px-4 py-3 text-base font-medium text-stone-900 hover:bg-stone-100"
+          >
+            Restaurant menu
+          </Link>
+          <span className="flex items-center gap-2 rounded-xl px-4 py-3 text-base font-medium text-stone-400">
+            Graduation
+            <span className="rounded-full bg-stone-900 px-2 py-0.5 text-[10px] text-white/80">
+              Coming soon…
+            </span>
+          </span>
+        </nav>
+      )}
     </header>
   );
 }

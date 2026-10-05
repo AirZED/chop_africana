@@ -12,13 +12,13 @@ import { recordAudit } from "@/lib/audit-service";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = getOrderById(id);
+  const order = await getOrderById(id);
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({
     order,
-    items: getOrderItems(id),
-    history: getOrderStatusHistory(id),
+    items: await getOrderItems(id),
+    history: await getOrderStatusHistory(id),
   });
 }
 
@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const order = getOrderById(id);
+  const order = await getOrderById(id);
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const allowed = ORDER_STATUS_TRANSITIONS[order.status] ?? [];
@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const session = await getSessionFromRequest(req);
   const changedBy = session?.email ?? "admin";
-  updateOrderStatus(id, body.status, changedBy, body.note ?? "");
+  await updateOrderStatus(id, body.status, changedBy, body.note ?? "");
 
   await recordAudit({
     adminEmail: changedBy,

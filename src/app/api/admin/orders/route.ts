@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const channel = searchParams.get("channel") as "restaurant" | "shop" | "mixed" | null;
   const search = searchParams.get("search");
 
-  const orders = listOrders({
+  const orders = await listOrders({
     status: status ?? undefined,
     channel: channel ?? undefined,
     search: search ?? undefined,

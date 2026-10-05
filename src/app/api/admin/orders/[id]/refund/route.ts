@@ -8,7 +8,7 @@ const REFUNDABLE_STATUSES = ["paid", "preparing", "ready", "completed"];
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = getOrderById(id);
+  const order = await getOrderById(id);
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (!REFUNDABLE_STATUSES.includes(order.status)) {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Refund failed. Check the Stripe dashboard." }, { status: 502 });
   }
 
-  updateOrderStatus(id, "refunded", changedBy, "Refunded via admin panel");
+  await updateOrderStatus(id, "refunded", changedBy, "Refunded via admin panel");
   await recordAudit({ adminEmail: changedBy, action: "order.refund", target: "order", targetId: id });
 
   return NextResponse.json({ ok: true });

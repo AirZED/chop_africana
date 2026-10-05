@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    createOrder({
+    await createOrder({
       stripePaymentIntentId: paymentIntent.id,
       fulfillment,
       table,

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (intent.status === "succeeded") {
       await finalizeOrderPayment(intent.id);
     } else if (intent.status === "canceled") {
-      markOrderStatus(intent.id, "failed");
+      await markOrderStatus(intent.id, "failed");
     }
     return NextResponse.json({ status: intent.status });
   } catch (err) {

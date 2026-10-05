@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
     case "payment_intent.payment_failed": {
       const intent = event.data.object as Stripe.PaymentIntent;
-      markOrderStatus(intent.id, "failed");
+      await markOrderStatus(intent.id, "failed");
       console.warn("[payments] Payment failed:", intent.id, intent.last_payment_error?.message);
       break;
     }

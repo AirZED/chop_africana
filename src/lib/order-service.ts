@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db";
+import { Collection } from "mongodb";
+import { getMongoDb } from "./mongodb";
 import { CartLine, FulfillmentMode, MenuItem, ShopProduct } from "./types";
 import { lineUnitPrice } from "./cart-pricing";
 import { decrementStock } from "./shop-service";
@@ -21,6 +22,8 @@ export const ORDER_STATUS_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]
   preparing: ["ready", "cancelled"],
   ready: ["completed", "cancelled"],
 };
+
+const PAID_EQUIVALENT_STATUSES: OrderStatus[] = ["paid", "preparing", "ready", "completed"];
 
 interface CreateOrderInput {
   stripePaymentIntentId: string;
@@ -78,47 +81,99 @@ export interface OrderStatusHistoryEntry {
   createdAt: string;
 }
 
-interface OrderRow {
+interface OrderItemDoc {
   id: string;
-  stripe_payment_intent_id: string;
-  status: string;
+  kind: "restaurant" | "shop";
+  refId: string;
+  nameSnapshot: string;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+  selectionsSummary: string;
+}
+
+interface OrderStatusHistoryDoc {
+  status: OrderStatus;
+  note: string;
+  changedBy: string;
+  createdAt: Date;
+}
+
+interface OrderDoc {
+  _id: string;
+  stripePaymentIntentId: string;
+  status: OrderStatus;
   channel: string;
-  fulfillment: string;
-  table_number: string | null;
-  full_name: string;
+  fulfillment: FulfillmentMode;
+  tableNumber: string | null;
+  fullName: string;
   phone: string;
   email: string;
   address: string | null;
-  subtotal_cents: number;
-  delivery_cents: number;
-  discount_code: string | null;
-  discount_cents: number;
-  total_cents: number;
-  fulfilled_at: string | null;
-  created_at: string;
-  updated_at: string;
+  subtotalCents: number;
+  deliveryCents: number;
+  discountCode: string | null;
+  discountCents: number;
+  totalCents: number;
+  fulfilledAt: Date | null;
+  items: OrderItemDoc[];
+  statusHistory: OrderStatusHistoryDoc[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-function rowToOrder(row: OrderRow): OrderRecord {
+async function getCollection(): Promise<Collection<OrderDoc>> {
+  const db = await getMongoDb();
+  return db.collection<OrderDoc>("orders");
+}
+
+function docToOrder(doc: OrderDoc): OrderRecord {
   return {
-    id: row.id,
-    stripePaymentIntentId: row.stripe_payment_intent_id,
-    status: row.status as OrderStatus,
-    channel: row.channel,
-    fulfillment: row.fulfillment as FulfillmentMode,
-    table: row.table_number,
-    fullName: row.full_name,
-    phone: row.phone,
-    email: row.email,
-    address: row.address,
-    subtotal: row.subtotal_cents / 100,
-    delivery: row.delivery_cents / 100,
-    discountCode: row.discount_code,
-    discount: row.discount_cents / 100,
-    total: row.total_cents / 100,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: doc._id,
+    stripePaymentIntentId: doc.stripePaymentIntentId,
+    status: doc.status,
+    channel: doc.channel,
+    fulfillment: doc.fulfillment,
+    table: doc.tableNumber,
+    fullName: doc.fullName,
+    phone: doc.phone,
+    email: doc.email,
+    address: doc.address,
+    subtotal: doc.subtotalCents / 100,
+    delivery: doc.deliveryCents / 100,
+    discountCode: doc.discountCode,
+    discount: doc.discountCents / 100,
+    total: doc.totalCents / 100,
+    createdAt: doc.createdAt.toISOString(),
+    updatedAt: doc.updatedAt.toISOString(),
   };
+}
+
+function docToItems(doc: OrderDoc): OrderItemRecord[] {
+  return doc.items.map((i) => ({
+    id: i.id,
+    kind: i.kind,
+    refId: i.refId,
+    name: i.nameSnapshot,
+    quantity: i.quantity,
+    unitPrice: i.unitPriceCents / 100,
+    lineTotal: i.lineTotalCents / 100,
+    selectionsSummary: i.selectionsSummary,
+  }));
+}
+
+function docToHistory(doc: OrderDoc): OrderStatusHistoryEntry[] {
+  return doc.statusHistory.map((h) => ({
+    status: h.status,
+    note: h.note,
+    changedBy: h.changedBy,
+    createdAt: h.createdAt.toISOString(),
+  }));
+}
+
+/** Escapes a string for safe use inside a RegExp built from user input. */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function selectionsSummary(item: MenuItem, line: Extract<CartLine, { kind: "restaurant" }>): string {
@@ -139,157 +194,107 @@ function channelFor(items: CartLine[]): "restaurant" | "shop" | "mixed" {
   return hasShop ? "shop" : "restaurant";
 }
 
-function insertStatusHistory(orderId: string, status: OrderStatus, note: string, changedBy: string) {
-  const db = getDb();
-  db.prepare(
-    `INSERT INTO order_status_history (id, order_id, status, note, changed_by) VALUES (?, ?, ?, ?, ?)`
-  ).run(randomUUID(), orderId, status, note, changedBy);
-}
-
-export function createOrder(input: CreateOrderInput): string {
-  const db = getDb();
+export async function createOrder(input: CreateOrderInput): Promise<string> {
+  const collection = await getCollection();
   const orderId = randomUUID();
+  const now = new Date();
 
-  const insertOrder = db.prepare(`
-    INSERT INTO orders (
-      id, stripe_payment_intent_id, status, channel, fulfillment, table_number,
-      full_name, phone, email, address, subtotal_cents, delivery_cents,
-      discount_code, discount_cents, total_cents
-    ) VALUES (
-      @id, @stripePaymentIntentId, 'pending', @channel, @fulfillment, @table,
-      @fullName, @phone, @email, @address, @subtotalCents, @deliveryCents,
-      @discountCode, @discountCents, @totalCents
-    )
-  `);
-  const insertItem = db.prepare(`
-    INSERT INTO order_items (id, order_id, kind, ref_id, name_snapshot, quantity, unit_price_cents, line_total_cents, selections_summary)
-    VALUES (@id, @orderId, @kind, @refId, @nameSnapshot, @quantity, @unitPriceCents, @lineTotalCents, @selectionsSummary)
-  `);
-
-  const run = db.transaction(() => {
-    insertOrder.run({
-      id: orderId,
-      stripePaymentIntentId: input.stripePaymentIntentId,
-      channel: channelFor(input.items),
-      fulfillment: input.fulfillment,
-      table: input.table ?? null,
-      fullName: input.fullName,
-      phone: input.phone,
-      email: input.email,
-      address: input.address ?? null,
-      subtotalCents: Math.round(input.subtotal * 100),
-      deliveryCents: Math.round(input.delivery * 100),
-      discountCode: input.discountCode ?? null,
-      discountCents: Math.round(input.discount * 100),
-      totalCents: Math.round(input.total * 100),
-    });
-
-    for (const line of input.items) {
-      const unit = lineUnitPrice(line, input.menu, input.shop);
-      if (line.kind === "restaurant") {
-        const item = input.menu.find((m) => m.itemId === line.refId);
-        if (!item) continue;
-        insertItem.run({
-          id: randomUUID(),
-          orderId,
-          kind: "restaurant",
-          refId: item.itemId,
-          nameSnapshot: item.name,
-          quantity: line.quantity,
-          unitPriceCents: Math.round(unit * 100),
-          lineTotalCents: Math.round(unit * line.quantity * 100),
-          selectionsSummary: selectionsSummary(item, line),
-        });
-      } else {
-        const product = input.shop.find((p) => p.productId === line.refId);
-        if (!product) continue;
-        insertItem.run({
-          id: randomUUID(),
-          orderId,
-          kind: "shop",
-          refId: product.productId,
-          nameSnapshot: product.name,
-          quantity: line.quantity,
-          unitPriceCents: Math.round(unit * 100),
-          lineTotalCents: Math.round(unit * line.quantity * 100),
-          selectionsSummary: "",
-        });
-      }
+  const items: OrderItemDoc[] = [];
+  for (const line of input.items) {
+    const unit = lineUnitPrice(line, input.menu, input.shop);
+    if (line.kind === "restaurant") {
+      const item = input.menu.find((m) => m.itemId === line.refId);
+      if (!item) continue;
+      items.push({
+        id: randomUUID(),
+        kind: "restaurant",
+        refId: item.itemId,
+        nameSnapshot: item.name,
+        quantity: line.quantity,
+        unitPriceCents: Math.round(unit * 100),
+        lineTotalCents: Math.round(unit * line.quantity * 100),
+        selectionsSummary: selectionsSummary(item, line),
+      });
+    } else {
+      const product = input.shop.find((p) => p.productId === line.refId);
+      if (!product) continue;
+      items.push({
+        id: randomUUID(),
+        kind: "shop",
+        refId: product.productId,
+        nameSnapshot: product.name,
+        quantity: line.quantity,
+        unitPriceCents: Math.round(unit * 100),
+        lineTotalCents: Math.round(unit * line.quantity * 100),
+        selectionsSummary: "",
+      });
     }
+  }
 
-    insertStatusHistory(orderId, "pending", "Order created, awaiting payment", "system");
+  await collection.insertOne({
+    _id: orderId,
+    stripePaymentIntentId: input.stripePaymentIntentId,
+    status: "pending",
+    channel: channelFor(input.items),
+    fulfillment: input.fulfillment,
+    tableNumber: input.table ?? null,
+    fullName: input.fullName,
+    phone: input.phone,
+    email: input.email,
+    address: input.address ?? null,
+    subtotalCents: Math.round(input.subtotal * 100),
+    deliveryCents: Math.round(input.delivery * 100),
+    discountCode: input.discountCode ?? null,
+    discountCents: Math.round(input.discount * 100),
+    totalCents: Math.round(input.total * 100),
+    fulfilledAt: null,
+    items,
+    statusHistory: [{ status: "pending", note: "Order created, awaiting payment", changedBy: "system", createdAt: now }],
+    createdAt: now,
+    updatedAt: now,
   });
-  run();
 
   return orderId;
 }
 
-export function getOrderItems(orderId: string): OrderItemRecord[] {
-  const db = getDb();
-  const rows = db
-    .prepare(
-      `SELECT id, kind, ref_id, name_snapshot, quantity, unit_price_cents, line_total_cents, selections_summary
-       FROM order_items WHERE order_id = ?`
-    )
-    .all(orderId) as {
-    id: string;
-    kind: string;
-    ref_id: string;
-    name_snapshot: string;
-    quantity: number;
-    unit_price_cents: number;
-    line_total_cents: number;
-    selections_summary: string;
-  }[];
-  return rows.map((r) => ({
-    id: r.id,
-    kind: r.kind as "restaurant" | "shop",
-    refId: r.ref_id,
-    name: r.name_snapshot,
-    quantity: r.quantity,
-    unitPrice: r.unit_price_cents / 100,
-    lineTotal: r.line_total_cents / 100,
-    selectionsSummary: r.selections_summary,
-  }));
+export async function getOrderItems(orderId: string): Promise<OrderItemRecord[]> {
+  const collection = await getCollection();
+  const doc = await collection.findOne({ _id: orderId });
+  return doc ? docToItems(doc) : [];
 }
 
-export function getOrderStatusHistory(orderId: string): OrderStatusHistoryEntry[] {
-  const db = getDb();
-  const rows = db
-    .prepare(`SELECT status, note, changed_by, created_at FROM order_status_history WHERE order_id = ? ORDER BY created_at ASC`)
-    .all(orderId) as { status: string; note: string; changed_by: string; created_at: string }[];
-  return rows.map((r) => ({
-    status: r.status as OrderStatus,
-    note: r.note,
-    changedBy: r.changed_by,
-    createdAt: r.created_at,
-  }));
+export async function getOrderStatusHistory(orderId: string): Promise<OrderStatusHistoryEntry[]> {
+  const collection = await getCollection();
+  const doc = await collection.findOne({ _id: orderId });
+  return doc ? docToHistory(doc) : [];
 }
 
-export function getOrderById(id: string): OrderRecord | null {
-  const db = getDb();
-  const row = db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow | undefined;
-  return row ? rowToOrder(row) : null;
+export async function getOrderById(id: string): Promise<OrderRecord | null> {
+  const collection = await getCollection();
+  const doc = await collection.findOne({ _id: id });
+  return doc ? docToOrder(doc) : null;
 }
 
-export function getOrderByPaymentIntent(stripePaymentIntentId: string): OrderRecord | null {
-  const db = getDb();
-  const row = db
-    .prepare("SELECT * FROM orders WHERE stripe_payment_intent_id = ?")
-    .get(stripePaymentIntentId) as OrderRow | undefined;
-  return row ? rowToOrder(row) : null;
+export async function getOrderByPaymentIntent(stripePaymentIntentId: string): Promise<OrderRecord | null> {
+  const collection = await getCollection();
+  const doc = await collection.findOne({ stripePaymentIntentId });
+  return doc ? docToOrder(doc) : null;
 }
 
 /** Customer-facing lookup — requires both the email on file and the order id to avoid leaking other customers' orders. */
-export function findOrderForCustomer(email: string, orderIdOrSuffix: string): OrderRecord | null {
-  const db = getDb();
-  const needle = orderIdOrSuffix.trim().toLowerCase();
-  const row = db
-    .prepare(
-      `SELECT * FROM orders WHERE lower(email) = lower(?) AND (id = ? OR lower(substr(id, -6)) = ?) ORDER BY created_at DESC LIMIT 1`
-    )
-    .get(email.trim(), needle, needle) as OrderRow | undefined;
-  return row ? rowToOrder(row) : null;
+export async function findOrderForCustomer(email: string, orderIdOrSuffix: string): Promise<OrderRecord | null> {
+  const collection = await getCollection();
+  const needle = orderIdOrSuffix.trim();
+  const suffixRe = new RegExp(`${escapeRegex(needle)}$`, "i");
+
+  const doc = await collection.findOne(
+    {
+      email: { $regex: `^${escapeRegex(email.trim())}$`, $options: "i" },
+      $or: [{ _id: needle }, { _id: suffixRe }],
+    },
+    { sort: { createdAt: -1 } }
+  );
+  return doc ? docToOrder(doc) : null;
 }
 
 export interface OrderListFilters {
@@ -299,65 +304,64 @@ export interface OrderListFilters {
   limit?: number;
 }
 
-export function listOrders(filters: OrderListFilters = {}): OrderRecord[] {
-  const db = getDb();
-  const clauses: string[] = [];
-  const params: Record<string, string | number> = {};
+export async function listOrders(filters: OrderListFilters = {}): Promise<OrderRecord[]> {
+  const collection = await getCollection();
+  const match: Record<string, unknown> = {};
 
-  if (filters.status) {
-    clauses.push("status = @status");
-    params.status = filters.status;
-  }
-  if (filters.channel) {
-    clauses.push("channel = @channel");
-    params.channel = filters.channel;
-  }
+  if (filters.status) match.status = filters.status;
+  if (filters.channel) match.channel = filters.channel;
   if (filters.search) {
-    clauses.push("(lower(full_name) LIKE @search OR lower(email) LIKE @search OR lower(id) LIKE @search)");
-    params.search = `%${filters.search.toLowerCase()}%`;
+    const re = new RegExp(escapeRegex(filters.search.trim()), "i");
+    match.$or = [{ fullName: re }, { email: re }, { _id: re }];
   }
 
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  const limit = filters.limit ?? 100;
-
-  const rows = db
-    .prepare(`SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT ${Math.min(limit, 500)}`)
-    .all(params) as OrderRow[];
-  return rows.map(rowToOrder);
+  const limit = Math.min(filters.limit ?? 100, 500);
+  const docs = await collection.find(match).sort({ createdAt: -1 }).limit(limit).toArray();
+  return docs.map(docToOrder);
 }
 
 /** Payment-status transition, keyed by Stripe payment intent — called from the webhook and the confirm-order fallback. */
-export function markOrderStatus(stripePaymentIntentId: string, status: "paid" | "failed") {
-  const db = getDb();
-  const order = getOrderByPaymentIntent(stripePaymentIntentId);
-  if (!order || order.status === status) return;
+export async function markOrderStatus(stripePaymentIntentId: string, status: "paid" | "failed"): Promise<void> {
+  const collection = await getCollection();
+  const doc = await collection.findOne({ stripePaymentIntentId });
+  if (!doc || doc.status === status) return;
 
-  db.prepare("UPDATE orders SET status = ?, updated_at = datetime('now') WHERE stripe_payment_intent_id = ?").run(
-    status,
-    stripePaymentIntentId
+  const now = new Date();
+  await collection.updateOne(
+    { _id: doc._id },
+    {
+      $set: { status, updatedAt: now },
+      $push: {
+        statusHistory: {
+          status,
+          note: status === "paid" ? "Payment confirmed" : "Payment failed",
+          changedBy: "system",
+          createdAt: now,
+        },
+      },
+    }
   );
-  insertStatusHistory(order.id, status, status === "paid" ? "Payment confirmed" : "Payment failed", "system");
 }
 
 /**
  * Runs exactly once per order, whichever of the webhook / confirm-order fallback gets
- * there first: decrements shop stock and sends the confirmation email. Guarded by
- * `fulfilled_at` so a race between the two paths (or a webhook retry) can't double-decrement
- * stock or double-send the email.
+ * there first: decrements shop stock and sends the confirmation email. Guarded by an
+ * atomic `fulfilledAt: null` -> set claim so a race between the two paths (or a webhook
+ * retry) can't double-decrement stock or double-send the email.
  */
 export async function finalizeOrderPayment(stripePaymentIntentId: string): Promise<void> {
-  markOrderStatus(stripePaymentIntentId, "paid");
+  await markOrderStatus(stripePaymentIntentId, "paid");
 
-  const db = getDb();
-  const order = getOrderByPaymentIntent(stripePaymentIntentId);
-  if (!order) return;
+  const collection = await getCollection();
+  const doc = await collection.findOne({ stripePaymentIntentId });
+  if (!doc) return;
 
-  const claimed = db
-    .prepare("UPDATE orders SET fulfilled_at = datetime('now') WHERE id = ? AND fulfilled_at IS NULL")
-    .run(order.id);
-  if (claimed.changes === 0) return; // another caller already handled this order
+  const claim = await collection.updateOne({ _id: doc._id, fulfilledAt: null }, { $set: { fulfilledAt: new Date() } });
+  if (claim.modifiedCount === 0) return; // another caller already handled this order
 
-  const items = getOrderItems(order.id);
+  const order = docToOrder(doc);
+  const items = docToItems(doc);
+
   for (const item of items) {
     if (item.kind === "shop") {
       await decrementStock(item.refId, item.quantity).catch((err) =>
@@ -371,15 +375,24 @@ export async function finalizeOrderPayment(stripePaymentIntentId: string): Promi
   );
 }
 
-export function updateOrderStatus(orderId: string, status: OrderStatus, changedBy: string, note = ""): boolean {
-  const db = getDb();
-  const result = db
-    .prepare("UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(status, orderId);
-  if (result.changes === 0) return false;
-  insertStatusHistory(orderId, status, note, changedBy);
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+  changedBy: string,
+  note = ""
+): Promise<boolean> {
+  const collection = await getCollection();
+  const now = new Date();
+  const result = await collection.updateOne(
+    { _id: orderId },
+    {
+      $set: { status, updatedAt: now },
+      $push: { statusHistory: { status, note, changedBy, createdAt: now } },
+    }
+  );
+  if (result.matchedCount === 0) return false;
 
-  const order = getOrderById(orderId);
+  const order = await getOrderById(orderId);
   if (order) {
     sendOrderStatusEmail({ order, status }).catch((err) =>
       console.error(`[orders] Failed to send status email for ${orderId}`, err)
@@ -390,19 +403,9 @@ export function updateOrderStatus(orderId: string, status: OrderStatus, changedB
 
 export type AnalyticsRange = "today" | "7d" | "30d" | "90d" | "all";
 
-function rangeToSqlModifier(range: AnalyticsRange): string | null {
-  switch (range) {
-    case "today":
-      return "-1 day";
-    case "7d":
-      return "-7 days";
-    case "30d":
-      return "-30 days";
-    case "90d":
-      return "-90 days";
-    case "all":
-      return null;
-  }
+function rangeToCutoff(range: AnalyticsRange): Date | null {
+  const days = { today: 1, "7d": 7, "30d": 30, "90d": 90, all: null }[range];
+  return days === null ? null : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
 export interface AnalyticsSummary {
@@ -425,94 +428,84 @@ export interface AnalyticsSummary {
   }[];
 }
 
-export function getAnalyticsSummary(range: AnalyticsRange): AnalyticsSummary {
-  const db = getDb();
-  const modifier = rangeToSqlModifier(range);
-  const cutoffClause = modifier ? `AND created_at >= datetime('now', '${modifier}')` : "";
+export async function getAnalyticsSummary(range: AnalyticsRange): Promise<AnalyticsSummary> {
+  const collection = await getCollection();
+  const cutoff = rangeToCutoff(range);
+  const dateMatch = cutoff ? { createdAt: { $gte: cutoff } } : {};
+  const paidMatch = { status: { $in: PAID_EQUIVALENT_STATUSES }, ...dateMatch };
 
-  const totals = db
-    .prepare(
-      `SELECT COUNT(*) as paidOrderCount, COALESCE(SUM(total_cents),0) as totalRevenueCents
-       FROM orders WHERE status IN ('paid','preparing','ready','completed') ${cutoffClause}`
-    )
-    .get() as { paidOrderCount: number; totalRevenueCents: number };
+  const [totalsAgg, pendingCount, failedCount, revenueByDayAgg, revenueByModeAgg, topItemsAgg, recentOrdersDocs] =
+    await Promise.all([
+      collection
+        .aggregate<{ paidOrderCount: number; totalRevenueCents: number }>([
+          { $match: paidMatch },
+          { $group: { _id: null, paidOrderCount: { $sum: 1 }, totalRevenueCents: { $sum: "$totalCents" } } },
+        ])
+        .toArray(),
+      collection.countDocuments({ status: "pending", ...dateMatch }),
+      collection.countDocuments({ status: "failed", ...dateMatch }),
+      collection
+        .aggregate<{ _id: string; revenueCents: number; orders: number }>([
+          { $match: paidMatch },
+          {
+            $group: {
+              _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+              revenueCents: { $sum: "$totalCents" },
+              orders: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ])
+        .toArray(),
+      collection
+        .aggregate<{ _id: string; revenueCents: number; orders: number }>([
+          { $match: paidMatch },
+          { $group: { _id: "$fulfillment", revenueCents: { $sum: "$totalCents" }, orders: { $sum: 1 } } },
+          { $sort: { revenueCents: -1 } },
+        ])
+        .toArray(),
+      collection
+        .aggregate<{ _id: string; quantity: number; revenueCents: number }>([
+          { $match: paidMatch },
+          { $unwind: "$items" },
+          {
+            $group: {
+              _id: "$items.nameSnapshot",
+              quantity: { $sum: "$items.quantity" },
+              revenueCents: { $sum: "$items.lineTotalCents" },
+            },
+          },
+          { $sort: { revenueCents: -1 } },
+          { $limit: 8 },
+        ])
+        .toArray(),
+      collection.find(dateMatch).sort({ createdAt: -1 }).limit(15).toArray(),
+    ]);
 
-  const pending = db
-    .prepare(`SELECT COUNT(*) as c FROM orders WHERE status = 'pending' ${cutoffClause}`)
-    .get() as { c: number };
-  const failed = db
-    .prepare(`SELECT COUNT(*) as c FROM orders WHERE status = 'failed' ${cutoffClause}`)
-    .get() as { c: number };
+  const totals = totalsAgg[0] ?? { paidOrderCount: 0, totalRevenueCents: 0 };
 
-  const totalAttempts = totals.paidOrderCount + pending.c + failed.c;
+  const totalAttempts = totals.paidOrderCount + pendingCount + failedCount;
   const conversionRate = totalAttempts > 0 ? totals.paidOrderCount / totalAttempts : 0;
 
-  const revenueByDay = db
-    .prepare(
-      `SELECT date(created_at) as date, COALESCE(SUM(total_cents),0) as revenueCents, COUNT(*) as orders
-       FROM orders WHERE status IN ('paid','preparing','ready','completed') ${cutoffClause}
-       GROUP BY date(created_at) ORDER BY date ASC`
-    )
-    .all() as { date: string; revenueCents: number; orders: number }[];
-
-  const revenueByMode = db
-    .prepare(
-      `SELECT fulfillment as mode, COALESCE(SUM(total_cents),0) as revenueCents, COUNT(*) as orders
-       FROM orders WHERE status IN ('paid','preparing','ready','completed') ${cutoffClause}
-       GROUP BY fulfillment ORDER BY revenueCents DESC`
-    )
-    .all() as { mode: string; revenueCents: number; orders: number }[];
-
-  const topItems = db
-    .prepare(
-      `SELECT oi.name_snapshot as name, SUM(oi.quantity) as quantity, SUM(oi.line_total_cents) as revenueCents
-       FROM order_items oi
-       JOIN orders o ON o.id = oi.order_id
-       WHERE o.status IN ('paid','preparing','ready','completed') ${cutoffClause.replace(/created_at/g, "o.created_at")}
-       GROUP BY oi.name_snapshot
-       ORDER BY revenueCents DESC
-       LIMIT 8`
-    )
-    .all() as { name: string; quantity: number; revenueCents: number }[];
-
-  const recentOrdersRaw = db
-    .prepare(
-      `SELECT id, status, fulfillment as mode, total_cents, created_at
-       FROM orders ${modifier ? `WHERE created_at >= datetime('now', '${modifier}')` : ""}
-       ORDER BY created_at DESC LIMIT 15`
-    )
-    .all() as { id: string; status: string; mode: string; total_cents: number; created_at: string }[];
-
-  const itemsByOrder = db
-    .prepare(
-      `SELECT order_id, name_snapshot, quantity FROM order_items
-       WHERE order_id IN (${recentOrdersRaw.map(() => "?").join(",") || "''"})`
-    )
-    .all(...recentOrdersRaw.map((o) => o.id)) as {
-    order_id: string;
-    name_snapshot: string;
-    quantity: number;
-  }[];
-
-  const recentOrders = recentOrdersRaw.map((o) => ({
-    ...o,
-    itemSummary: itemsByOrder
-      .filter((i) => i.order_id === o.id)
-      .map((i) => `${i.name_snapshot} x${i.quantity}`)
-      .join(", "),
+  const recentOrders = recentOrdersDocs.map((doc) => ({
+    id: doc._id,
+    status: doc.status,
+    mode: doc.fulfillment,
+    total_cents: doc.totalCents,
+    created_at: doc.createdAt.toISOString(),
+    itemSummary: doc.items.map((i) => `${i.nameSnapshot} x${i.quantity}`).join(", "),
   }));
 
   return {
     totalRevenueCents: totals.totalRevenueCents,
     paidOrderCount: totals.paidOrderCount,
-    avgOrderValueCents:
-      totals.paidOrderCount > 0 ? Math.round(totals.totalRevenueCents / totals.paidOrderCount) : 0,
-    pendingCount: pending.c,
-    failedCount: failed.c,
+    avgOrderValueCents: totals.paidOrderCount > 0 ? Math.round(totals.totalRevenueCents / totals.paidOrderCount) : 0,
+    pendingCount,
+    failedCount,
     conversionRate,
-    revenueByDay,
-    revenueByMode,
-    topItems,
+    revenueByDay: revenueByDayAgg.map((r) => ({ date: r._id, revenueCents: r.revenueCents, orders: r.orders })),
+    revenueByMode: revenueByModeAgg.map((r) => ({ mode: r._id, revenueCents: r.revenueCents, orders: r.orders })),
+    topItems: topItemsAgg.map((r) => ({ name: r._id, quantity: r.quantity, revenueCents: r.revenueCents })),
     recentOrders,
   };
 }

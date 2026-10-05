@@ -13,14 +13,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email and order number are required" }, { status: 400 });
   }
 
-  const order = findOrderForCustomer(body.email, body.orderId);
+  const order = await findOrderForCustomer(body.email, body.orderId);
   if (!order) {
     return NextResponse.json({ error: "We couldn't find an order matching that email and order number." }, { status: 404 });
   }
 
   return NextResponse.json({
     order,
-    items: getOrderItems(order.id),
-    history: getOrderStatusHistory(order.id),
+    items: await getOrderItems(order.id),
+    history: await getOrderStatusHistory(order.id),
   });
 }

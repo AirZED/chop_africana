@@ -55,7 +55,7 @@ const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = 
     id: "shop-beef-pie",
     name: "Beef Pie",
     description:
-      "Minced beef slow-cooked with onions, carrots and a warm mix of spices, sealed in buttery shortcrust. The party-table classic, ready when you are.",
+      "Hearty, flavour-packed meat pies. Ready to go from freezer to oven, save time and skip the stress. Order online or grab one at your local supermarket.",
     price: 12,
     packSize: "4 fzn pk",
     emoji: "🥧",
@@ -72,7 +72,7 @@ const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = 
     id: "shop-chicken-pie",
     name: "Chicken Pie",
     description:
-      "Tender chicken and vegetables in a rich, savory filling, baked into a golden, flaky crust. A lighter classic the whole table agrees on.",
+      "Delicious pies packed with tender chicken and full of flavour. Ready to go straight from the freezer to the oven, save time and skip the stress. Order online or grab one at your local supermarket.",
     price: 12,
     packSize: "4 fzn pk",
     emoji: "🥧",

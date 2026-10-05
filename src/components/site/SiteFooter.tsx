@@ -7,7 +7,7 @@ const SHOP_LINKS = [
   { label: "Beef pie", href: "/shop/shop-beef-pie" },
   { label: "Chicken pie", href: "/shop/shop-chicken-pie" },
   { label: "Find in store", href: "/#find-in-store" },
-  { label: "Stock our pies", href: "mailto:hello@chopafricana.com" },
+  { label: "Stock our pies", href: "mailto:admin@chopafricana.com" },
 ];
 
 const RESTAURANT_LINKS = [
@@ -96,9 +96,7 @@ export default function SiteFooter() {
             <div className="flex flex-wrap gap-8">
               <div>
                 <Badge>Visit us @</Badge>
-                <p className="mt-1.5 text-sm text-stone-700">
-                  24 High Street, Whitechapel, London E1 6AB
-                </p>
+                <p className="mt-1.5 text-sm text-stone-700">{restaurant.address}</p>
               </div>
               <div>
                 <Badge>Time:</Badge>
@@ -112,9 +110,9 @@ export default function SiteFooter() {
             <div>
               <Badge>Contact</Badge>
               <p className="mt-1.5 text-sm text-stone-700">
-                Email: hello@chopafricana.com
+                Email: admin@chopafricana.com
                 <br />
-                Phone No: 020 7946 0000
+                Phone No: 07478 009266
               </p>
             </div>
           </div>
@@ -130,7 +128,7 @@ export default function SiteFooter() {
               className="rounded-full"
             />
             <span className="text-xl text-white/70">
-              © {new Date().getFullYear()} {restaurant.name}. All rights
+              © {new Date().getFullYear()} {restaurant.name} Ltd. All rights
               reserved.
             </span>
           </div>

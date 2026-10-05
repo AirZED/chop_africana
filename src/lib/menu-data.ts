@@ -1,7 +1,7 @@
 export const restaurant = {
   name: "Chop Africana",
   emoji: "🥧",
-  address: "24 High Street, London E1 6AB",
+  address: "Unit 5, City Business Park, Marshwood Close, Canterbury, Kent CT1 1DX",
   hours: "Mon–Sun 12pm–9pm",
   pickupMinutes: 20,
 };

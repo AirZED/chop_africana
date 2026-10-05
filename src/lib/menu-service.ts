@@ -53,91 +53,224 @@ export interface MenuItemInput {
   }[];
 }
 
+const SWALLOW_OPTIONS = {
+  title: "Swallow Option",
+  required: true,
+  maxSelections: 1,
+  options: [
+    { name: "Eba", price: 0 },
+    { name: "Poundo", price: 0 },
+    { name: "Starch", price: 0 },
+    { name: "Amala", price: 0 },
+  ],
+};
+
 const SEED_ITEMS: (MenuItemInput & { id: string; sortOrder: number })[] = [
+  // --- Combo Deals ---
   {
-    id: "smoky-jollof-rice",
-    name: "Smoky Jollof Rice",
-    basePrice: 14.5,
-    description: "Party-style jollof, charred at the bottom, with grilled chicken thigh.",
-    category: "Mains",
-    emoji: "🍚",
-    image: "/menu/smoky_jellof.png",
-    prepMinutes: 25,
-    popular: true,
-    active: true,
-    modifierGroups: [],
-    sortOrder: 0,
-  },
-  {
-    id: "beef-tacos",
-    name: "Beef Tacos",
-    basePrice: 9.5,
-    description: "Soft corn tortillas filled with seasoned beef, fresh salsa, and avocado.",
-    category: "Mains",
-    emoji: "🌮",
-    image: "/menu/beef_tacos.jpg",
-    prepMinutes: 10,
-    popular: false,
-    active: true,
-    modifierGroups: [],
-    sortOrder: 1,
-  },
-  {
-    id: "vegetable-stir-fry",
-    name: "Vegetable Stir-Fry",
-    basePrice: 11,
-    description: "A colorful mix of seasonal veggies, sautéed with soy sauce and sesame seeds.",
-    category: "Soups & Sides",
-    emoji: "🥗",
-    image: "/menu/vegetable_stir.jpg",
-    prepMinutes: 15,
-    popular: false,
-    active: true,
-    modifierGroups: [],
-    sortOrder: 2,
-  },
-  {
-    id: "classic-caesar-salad",
-    name: "Classic Caesar Salad",
-    basePrice: 8.5,
-    description: "Crisp romaine lettuce with Caesar dressing, croutons, and parmesan.",
-    category: "Soups & Sides",
-    emoji: "🥙",
-    image: "/menu/classic_ceaser.jpg",
-    prepMinutes: 5,
-    popular: false,
-    active: true,
-    modifierGroups: [],
-    sortOrder: 3,
-  },
-  {
-    id: "grilled-salmon",
-    name: "Grilled Salmon",
-    basePrice: 16,
-    description: "Salmon fillet grilled to perfection, served with lemon butter sauce.",
-    category: "Grills",
-    emoji: "🐟",
-    image: "/menu/grilled_salmon.jpg",
+    id: "combo-meal-13",
+    name: "£13 Combo Meal",
+    description: "Includes 1 rice dish, 1 side, and 1 protein of your choice.",
+    basePrice: 13,
+    category: "Combo Deals",
+    emoji: "🍱",
     prepMinutes: 20,
     popular: true,
     active: true,
-    modifierGroups: [],
-    sortOrder: 4,
+    sortOrder: 0,
+    modifierGroups: [
+      {
+        title: "Rice Dish",
+        required: true,
+        maxSelections: 1,
+        options: [
+          { name: "Jollof Rice", price: 0 },
+          { name: "Fried Rice", price: 0 },
+          { name: "Coconut Rice", price: 0 },
+        ],
+      },
+      {
+        title: "Side",
+        required: true,
+        maxSelections: 1,
+        options: [
+          { name: "Plantain", price: 0 },
+          { name: "Moi Moi", price: 0 },
+          { name: "Salad", price: 0 },
+        ],
+      },
+      {
+        title: "Protein",
+        required: true,
+        maxSelections: 1,
+        options: [
+          { name: "Soft Chicken Thigh", price: 0 },
+          { name: "Turkey Mid-Wing", price: 0 },
+          { name: "Hake Fish", price: 0 },
+          { name: "Mackerel Fish", price: 0 },
+        ],
+      },
+    ],
   },
   {
-    id: "chocolate-lava-cake",
-    name: "Chocolate Lava Cake",
-    basePrice: 6.5,
-    description: "Warm chocolate cake with a gooey center, served with vanilla ice cream.",
-    category: "Desserts",
-    emoji: "🍫",
-    image: "/menu/chocolate_lava.jpg",
-    prepMinutes: 10,
+    id: "combo-meal-10",
+    name: "£10 Combo Meal",
+    description: "Includes 1 rice dish and 1 side, with a soft chicken drumstick.",
+    basePrice: 10,
+    category: "Combo Deals",
+    emoji: "🍱",
+    prepMinutes: 20,
     popular: false,
     active: true,
-    modifierGroups: [],
-    sortOrder: 5,
+    sortOrder: 1,
+    modifierGroups: [
+      {
+        title: "Rice Dish",
+        required: true,
+        maxSelections: 1,
+        options: [
+          { name: "Jollof Rice", price: 0 },
+          { name: "Fried Rice", price: 0 },
+          { name: "Coconut Rice", price: 0 },
+        ],
+      },
+      {
+        title: "Side",
+        required: true,
+        maxSelections: 1,
+        options: [
+          { name: "Plantain", price: 0 },
+          { name: "Moi Moi", price: 0 },
+          { name: "Salad", price: 0 },
+        ],
+      },
+    ],
   },
+
+  // --- Rice Dishes ---
+  { id: "jollof-rice", name: "Jollof Rice", description: "Our signature smoky party jollof rice.", basePrice: 8, category: "Rice Dishes", emoji: "🍚", prepMinutes: 15, popular: true, active: true, sortOrder: 2, modifierGroups: [] },
+  { id: "fried-rice", name: "Fried Rice", description: "Classic Nigerian-style fried rice with mixed vegetables.", basePrice: 8, category: "Rice Dishes", emoji: "🍚", prepMinutes: 15, popular: false, active: true, sortOrder: 3, modifierGroups: [] },
+  { id: "coconut-rice", name: "Coconut Rice", description: "Fragrant rice cooked in rich coconut milk.", basePrice: 8, category: "Rice Dishes", emoji: "🍚", prepMinutes: 15, popular: false, active: true, sortOrder: 4, modifierGroups: [] },
+  { id: "ofada-rice-ayamase", name: "Ofada Rice & Ayamase Stew", description: "Local Ofada rice served with spicy ayamase (green pepper) stew.", basePrice: 13, category: "Rice Dishes", emoji: "🍚", prepMinutes: 20, popular: false, active: true, sortOrder: 5, modifierGroups: [] },
+
+  // --- Other Dishes ---
+  { id: "beans-pottage", name: "Beans Pottage", description: "Slow-cooked beans pottage, a hearty Nigerian classic.", basePrice: 10, category: "Other Dishes", emoji: "🍲", prepMinutes: 20, popular: false, active: true, sortOrder: 6, modifierGroups: [] },
+  { id: "special-noodles-omelette", name: "Special Noodles & Plain Omelette", description: "Stir-fried noodles served with a plain omelette.", basePrice: 9.5, category: "Other Dishes", emoji: "🍲", prepMinutes: 15, popular: false, active: true, sortOrder: 7, modifierGroups: [] },
+
+  // --- Protein (a la carte) ---
+  { id: "soft-chicken-thigh", name: "Soft Chicken Thigh", description: "Tender, well-seasoned chicken thigh.", basePrice: 4.5, category: "Protein", emoji: "🍗", prepMinutes: 15, popular: false, active: true, sortOrder: 8, modifierGroups: [] },
+  { id: "soft-chicken-drumstick", name: "Soft Chicken Drumstick", description: "Tender, well-seasoned chicken drumstick.", basePrice: 1.5, category: "Protein", emoji: "🍗", prepMinutes: 15, popular: false, active: true, sortOrder: 9, modifierGroups: [] },
+  { id: "turkey-mid-wing", name: "Turkey Mid-Wing", description: "Grilled turkey mid-wing.", basePrice: 4.5, category: "Protein", emoji: "🍗", prepMinutes: 15, popular: false, active: true, sortOrder: 10, modifierGroups: [] },
+  { id: "hake-fish", name: "Hake Fish", description: "Pan-fried hake fish fillet.", basePrice: 4.5, category: "Protein", emoji: "🐟", prepMinutes: 15, popular: false, active: true, sortOrder: 11, modifierGroups: [] },
+  { id: "beef-suya", name: "Beef Suya", description: "Spiced, char-grilled beef suya skewers.", basePrice: 9.5, category: "Protein", emoji: "🍢", prepMinutes: 18, popular: true, active: true, sortOrder: 12, modifierGroups: [] },
+  { id: "suya-chicken-wings", name: "Suya Chicken Wings", description: "2 pieces of suya-spiced chicken wings.", basePrice: 3.5, category: "Protein", emoji: "🍗", prepMinutes: 15, popular: false, active: true, sortOrder: 13, modifierGroups: [] },
+  { id: "honey-bbq-wings", name: "Honey BBQ Wings", description: "2 pieces of honey BBQ glazed wings.", basePrice: 3.5, category: "Protein", emoji: "🍗", prepMinutes: 15, popular: false, active: true, sortOrder: 14, modifierGroups: [] },
+  { id: "nkwobi", name: "Nkwobi (Cow Foot)", description: "Spiced cow foot in a rich palm oil sauce.", basePrice: 9.5, category: "Protein", emoji: "🍖", prepMinutes: 20, popular: false, active: true, sortOrder: 15, modifierGroups: [] },
+
+  // --- Extras ---
+  { id: "extra-plantain", name: "Plantain", description: "Sweet fried plantain.", basePrice: 4, category: "Extras", emoji: "🍌", prepMinutes: 10, popular: false, active: true, sortOrder: 16, modifierGroups: [] },
+  { id: "extra-yam-fries", name: "Yam Fries", description: "Crispy fried yam.", basePrice: 4, category: "Extras", emoji: "🍟", prepMinutes: 10, popular: false, active: true, sortOrder: 17, modifierGroups: [] },
+  { id: "extra-chips", name: "Chips", description: "Classic fries.", basePrice: 3, category: "Extras", emoji: "🍟", prepMinutes: 10, popular: false, active: true, sortOrder: 18, modifierGroups: [] },
+  { id: "extra-moi-moi", name: "Moi Moi", description: "Steamed bean pudding.", basePrice: 2, category: "Extras", emoji: "🍮", prepMinutes: 10, popular: false, active: true, sortOrder: 19, modifierGroups: [] },
+  { id: "extra-salad", name: "Salad", description: "Fresh side salad.", basePrice: 1.8, category: "Extras", emoji: "🥗", prepMinutes: 5, popular: false, active: true, sortOrder: 20, modifierGroups: [] },
+
+  // --- Nigerian Soups ---
+  {
+    id: "egusi-soup", name: "Egusi Soup", description: "Rich melon seed soup.", basePrice: 13, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: true, active: true, sortOrder: 21,
+    modifierGroups: [
+      { title: "Protein Option", required: true, maxSelections: 1, options: [{ name: "Assorted Meat", price: 0 }, { name: "Goat Meat", price: 0 }, { name: "Chicken Thigh", price: 0 }] },
+      SWALLOW_OPTIONS,
+    ],
+  },
+  {
+    id: "ogbono-soup", name: "Ogbono Soup", description: "Draw soup made from ground ogbono seeds, served with assorted meat.", basePrice: 14.5, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: false, active: true, sortOrder: 22,
+    modifierGroups: [SWALLOW_OPTIONS],
+  },
+  {
+    id: "oha-soup", name: "Oha Soup", description: "Traditional oha-leaf soup, served with assorted meat.", basePrice: 14.5, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: false, active: true, sortOrder: 23,
+    modifierGroups: [SWALLOW_OPTIONS],
+  },
+  {
+    id: "banga-soup", name: "Banga Soup", description: "Palm nut soup.", basePrice: 14.5, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: false, active: true, sortOrder: 24,
+    modifierGroups: [
+      { title: "Protein Option", required: true, maxSelections: 1, options: [{ name: "Assorted Meat", price: 0 }, { name: "Fresh Fish", price: 0 }] },
+      SWALLOW_OPTIONS,
+    ],
+  },
+  {
+    id: "afang-soup", name: "Afang Soup", description: "Afang-leaf soup with a rich vegetable base.", basePrice: 14.5, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: false, active: true, sortOrder: 25,
+    modifierGroups: [
+      { title: "Protein Option", required: true, maxSelections: 1, options: [{ name: "Assorted Meat", price: 0 }, { name: "Goat Meat", price: 0 }] },
+      SWALLOW_OPTIONS,
+    ],
+  },
+  {
+    id: "white-soup", name: "White Soup", description: "Light, peppery white soup, served with assorted meat.", basePrice: 13, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: false, active: true, sortOrder: 26,
+    modifierGroups: [SWALLOW_OPTIONS],
+  },
+  {
+    id: "efo-riro-soup", name: "Efo Riro Soup", description: "Classic vegetable soup.", basePrice: 14.5, category: "Nigerian Soups", emoji: "🥘", prepMinutes: 25, popular: false, active: true, sortOrder: 27,
+    modifierGroups: [
+      { title: "Protein Option", required: true, maxSelections: 1, options: [{ name: "Assorted Meat", price: 0 }, { name: "Chicken Thigh", price: 0 }] },
+      SWALLOW_OPTIONS,
+    ],
+  },
+  {
+    id: "pepper-soup", name: "Pepper Soup", description: "Light, spicy pepper soup broth.", basePrice: 6, category: "Nigerian Soups", emoji: "🍲", prepMinutes: 20, popular: false, active: true, sortOrder: 28,
+    modifierGroups: [
+      { title: "Protein Option", required: true, maxSelections: 1, options: [{ name: "Cow Assorted Meat", price: 0 }, { name: "Goat Assorted Meat", price: 0.5 }, { name: "Cat Fish", price: 1 }] },
+      SWALLOW_OPTIONS,
+    ],
+  },
+
+  // --- Pastries ---
+  {
+    id: "puff-puff", name: "Puff Puff (Box of 6)", description: "6 soft, sweet Nigerian puff puff.", basePrice: 2.5, category: "Pastries", emoji: "🍩", prepMinutes: 8, popular: true, active: true, sortOrder: 29,
+    modifierGroups: [
+      {
+        title: "Toppings", required: false, maxSelections: 5,
+        options: [
+          { name: "Biscoff Sauce", price: 0.5 },
+          { name: "Milk Chocolate Sauce", price: 0.5 },
+          { name: "White Chocolate Sauce", price: 0.5 },
+          { name: "Oreo Cookie Crumbs", price: 0.5 },
+          { name: "Biscoff Cookie Crumbs", price: 0.5 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "meat-pie", name: "Meat Pie", description: "Flaky, savoury Nigerian meat pie.", basePrice: 2.5, category: "Pastries", emoji: "🥐", prepMinutes: 5, popular: false, active: true, sortOrder: 30,
+    modifierGroups: [
+      { title: "Quantity", required: true, maxSelections: 1, options: [{ name: "1 Pie", price: 0 }, { name: "5 Pies", price: 7.5 }] },
+    ],
+  },
+  { id: "small-chops-box", name: "Small Chops Box", description: "Samosa, spring rolls, puff puff & chicken drumstick.", basePrice: 4.5, category: "Pastries", emoji: "🍱", prepMinutes: 10, popular: false, active: true, sortOrder: 31, modifierGroups: [] },
+
+  // --- Soft Drinks ---
+  { id: "fanta", name: "Fanta", description: "", basePrice: 2.5, category: "Soft Drinks", emoji: "🥤", prepMinutes: 2, popular: false, active: true, sortOrder: 32, modifierGroups: [] },
+  { id: "coke", name: "Coke", description: "", basePrice: 2.5, category: "Soft Drinks", emoji: "🥤", prepMinutes: 2, popular: false, active: true, sortOrder: 33, modifierGroups: [] },
+  { id: "sprite", name: "Sprite", description: "", basePrice: 2.5, category: "Soft Drinks", emoji: "🥤", prepMinutes: 2, popular: false, active: true, sortOrder: 34, modifierGroups: [] },
+  { id: "malt", name: "Malt", description: "", basePrice: 2.5, category: "Soft Drinks", emoji: "🥤", prepMinutes: 2, popular: false, active: true, sortOrder: 35, modifierGroups: [] },
+  {
+    id: "canned-soft-drink", name: "Canned Soft Drink", description: "Coke, Fanta, Sprite or Tango.", basePrice: 1.5, category: "Soft Drinks", emoji: "🥫", prepMinutes: 2, popular: false, active: true, sortOrder: 36,
+    modifierGroups: [{ title: "Flavour", required: true, maxSelections: 1, options: [{ name: "Coke", price: 0 }, { name: "Fanta", price: 0 }, { name: "Sprite", price: 0 }, { name: "Tango", price: 0 }] }],
+  },
+  {
+    id: "schweppes-mojito-chapman", name: "Schweppes Mojito or Chapman", description: "", basePrice: 1.8, category: "Soft Drinks", emoji: "🥤", prepMinutes: 2, popular: false, active: true, sortOrder: 37,
+    modifierGroups: [{ title: "Flavour", required: true, maxSelections: 1, options: [{ name: "Mojito", price: 0 }, { name: "Chapman", price: 0 }] }],
+  },
+
+  // --- Alcoholic Drinks ---
+  { id: "nigerian-heineken", name: "Nigerian Heineken", description: "", basePrice: 6, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 38, modifierGroups: [] },
+  { id: "small-nigerian-stout", name: "Small Nigerian Stout", description: "", basePrice: 5.5, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 39, modifierGroups: [] },
+  { id: "big-nigerian-stout", name: "Big Nigerian Stout", description: "", basePrice: 9.5, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 40, modifierGroups: [] },
+  { id: "star-beer", name: "Star Beer", description: "", basePrice: 4.5, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 41, modifierGroups: [] },
+  { id: "origin-beer", name: "Origin Beer", description: "", basePrice: 5.5, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 42, modifierGroups: [] },
+  { id: "origin-bitters", name: "Origin Bitters", description: "", basePrice: 7.5, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 43, modifierGroups: [] },
+  { id: "smirnoff-ice", name: "Smirnoff Ice", description: "", basePrice: 4, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 44, modifierGroups: [] },
+  { id: "palm-wine", name: "Palm Wine", description: "", basePrice: 3.5, category: "Alcoholic Drinks", emoji: "🍷", prepMinutes: 2, popular: false, active: true, sortOrder: 45, modifierGroups: [] },
+  { id: "jekomo", name: "Jekomo", description: "", basePrice: 2.5, category: "Alcoholic Drinks", emoji: "🍺", prepMinutes: 2, popular: false, active: true, sortOrder: 46, modifierGroups: [] },
 ];
 
 async function getCollection(): Promise<Collection<MenuItemDoc>> {
@@ -159,7 +292,7 @@ async function getCollection(): Promise<Collection<MenuItemDoc>> {
         popular: item.popular,
         active: item.active,
         sortOrder: item.sortOrder,
-        modifierGroups: [],
+        modifierGroups: toModifierGroupDocs(item.modifierGroups),
         createdAt: now,
         updatedAt: now,
       }))

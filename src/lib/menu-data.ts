@@ -7,11 +7,6 @@ export const restaurant = {
 };
 
 export const menuCategories = [
-  "Mains",
-  "Soups & Sides",
-  "Grills",
-  "Drinks",
-  "Desserts",
   "Combo Deals",
   "Rice Dishes",
   "Other Dishes",
@@ -24,11 +19,6 @@ export const menuCategories = [
 ] as const;
 
 export const categoryMeta: Record<(typeof menuCategories)[number], { icon: string; gradient: string }> = {
-  Mains: { icon: "🍽️", gradient: "from-orange-400 to-red-600" },
-  "Soups & Sides": { icon: "🥗", gradient: "from-amber-300 to-yellow-600" },
-  Grills: { icon: "🔥", gradient: "from-red-400 to-orange-700" },
-  Drinks: { icon: "🥤", gradient: "from-sky-400 to-blue-600" },
-  Desserts: { icon: "🍰", gradient: "from-pink-300 to-rose-500" },
   "Combo Deals": { icon: "🍱", gradient: "from-amber-400 to-orange-600" },
   "Rice Dishes": { icon: "🍚", gradient: "from-yellow-400 to-amber-600" },
   "Other Dishes": { icon: "🍲", gradient: "from-stone-400 to-stone-600" },

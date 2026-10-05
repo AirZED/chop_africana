@@ -1,4 +1,6 @@
-export type MenuCategory = "Mains" | "Soups & Sides" | "Grills" | "Drinks" | "Desserts";
+import type { menuCategories } from "./menu-data";
+
+export type MenuCategory = (typeof menuCategories)[number];
 
 export interface ModifierOption {
   id: string;

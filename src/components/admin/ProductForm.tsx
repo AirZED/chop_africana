@@ -47,7 +47,7 @@ export default function ProductForm({ itemId, initial }: ProductFormProps) {
 
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [category, setCategory] = useState<MenuItem["category"]>(initial?.category ?? "Mains");
+  const [category, setCategory] = useState<MenuItem["category"]>(initial?.category ?? menuCategories[0]);
   const [emoji, setEmoji] = useState(initial?.emoji ?? "🍽️");
   const [image, setImage] = useState(initial?.image ?? "");
   const [prepMinutes, setPrepMinutes] = useState(initial?.prepMinutes ? String(initial.prepMinutes) : "15");

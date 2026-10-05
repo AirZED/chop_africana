@@ -17,10 +17,13 @@ export default function HomePage() {
           className="bg-[linear-gradient(to_bottom,#B0A2A1_0%,#CBBDBC_35%,#D9CBCC_70%,#DCCFCE_100%)] px-6 pb-10 pt-24 text-center"
         >
           <h1 className="mx-auto max-w-3xl font-serif text-4xl font-light leading-[1.1] tracking-[-0.03em] text-white drop-shadow-sm sm:text-6xl">
-            Proper Pies 🥧, Baked In Your Own Oven.
+            5 Ready-to-Bake Pies
           </h1>
+          <p className="mx-auto mt-3 max-w-xl font-serif text-xl text-white/90 sm:text-2xl">
+            Straight from your freezer to your oven
+          </p>
           <p className="mx-auto mt-5 max-w-lg text-stone-50/90">
-            Beef and chicken pies, ready to go from freezer to oven. Order
+            Authentic Nigerian Pies, NO Preservatives or Additives. Order
             online or pick them up at a supermarket near you.
           </p>
           <Link

@@ -23,8 +23,8 @@ const playfair = Playfair({
 });
 
 export const metadata: Metadata = {
-  title: "Chop Africana | Proper Pies, Baked In Your Own Oven",
-  description: "Beef and chicken pies, ready to go from freezer to oven. Order online or pick them up at a supermarket near you.",
+  title: "Chop Africana | 5 Ready-to-Bake Pies, Straight From Your Freezer To Your Oven",
+  description: "Authentic Nigerian pies, no preservatives or additives. Order online or pick them up at a supermarket near you.",
 };
 
 export const viewport: Viewport = {

@@ -2,7 +2,7 @@ export const restaurant = {
   name: "Chop Africana",
   emoji: "🥧",
   address: "24 High Street, London E1 6AB",
-  hours: "Mon–Fri 11am–10pm · Sat–Sun 12pm–11pm",
+  hours: "Mon–Sun 12pm–9pm",
   pickupMinutes: 20,
 };
 

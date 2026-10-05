@@ -18,10 +18,14 @@ const RESTAURANT_LINKS = [
 ];
 
 const SOCIALS = [
-  { label: "Instagram", href: "https://instagram.com", Icon: InstagramIcon },
-  { label: "TikTok", href: "https://tiktok.com", Icon: TikTokIcon },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/chopafricana_uk?stkn=MTZrNHRjemgxYTBpaA%3D%3D&utm_source=qr",
+    Icon: InstagramIcon,
+  },
+  { label: "TikTok", href: "https://www.tiktok.com/@chopafricana_uk?_r=1&_t=ZN-9AHP4VU3iCM", Icon: TikTokIcon },
   { label: "WhatsApp", href: "https://wa.me/", Icon: WhatsAppIcon },
-  { label: "Facebook", href: "https://facebook.com", Icon: FacebookIcon },
+  { label: "Facebook", href: "https://www.facebook.com/share/19Rc8byi2z/?mibextid=wwXIfr", Icon: FacebookIcon },
 ];
 
 function BrandWordmark({ name }: { name: string }) {
@@ -99,9 +103,9 @@ export default function SiteFooter() {
               <div>
                 <Badge>Time:</Badge>
                 <p className="mt-1.5 text-sm text-stone-700">
-                  Mon–Fri 11am–10pm
+                  Monday – Sunday
                   <br />
-                  Sat–Sun 12pm–11pm
+                  12:00pm – 9:00pm
                 </p>
               </div>
             </div>

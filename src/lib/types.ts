@@ -42,6 +42,7 @@ export interface ShopProduct {
   image?: string;
   ingredients: string;
   allergens: string;
+  storageInstructions: string;
   bakingSteps: string[];
   /** undefined/null = unlimited stock. 0 = sold out. */
   stock?: number | null;

@@ -14,6 +14,7 @@ export function validateShopProductInput(body: unknown): { input?: ShopProductIn
   if (b.image !== undefined && typeof b.image !== "string") return { error: "image must be a string" };
   if (typeof b.ingredients !== "string") return { error: "Ingredients is required" };
   if (typeof b.allergens !== "string") return { error: "Allergens is required" };
+  if (typeof b.storageInstructions !== "string") return { error: "Storage instructions is required" };
   if (typeof b.active !== "boolean") return { error: "active must be a boolean" };
   if (!Array.isArray(b.bakingSteps) || b.bakingSteps.some((s) => typeof s !== "string")) {
     return { error: "bakingSteps must be an array of strings" };
@@ -36,6 +37,7 @@ export function validateShopProductInput(body: unknown): { input?: ShopProductIn
       image: typeof b.image === "string" ? b.image.trim() || undefined : undefined,
       ingredients: (b.ingredients as string).trim(),
       allergens: (b.allergens as string).trim(),
+      storageInstructions: (b.storageInstructions as string).trim(),
       bakingSteps: (b.bakingSteps as string[]).map((s) => s.trim()).filter(Boolean),
       active: b.active,
       stock: typeof b.stock === "number" ? b.stock : null,

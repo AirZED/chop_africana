@@ -21,6 +21,7 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
   const [image, setImage] = useState(initial?.image ?? "");
   const [ingredients, setIngredients] = useState(initial?.ingredients ?? "");
   const [allergens, setAllergens] = useState(initial?.allergens ?? "");
+  const [storageInstructions, setStorageInstructions] = useState(initial?.storageInstructions ?? "");
   const [bakingSteps, setBakingSteps] = useState(initial?.bakingSteps.join("\n") ?? "");
   const [active, setActive] = useState(initial?.active ?? true);
   const [stock, setStock] = useState(initial?.stock != null ? String(initial.stock) : "");
@@ -48,6 +49,7 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
       image: image.trim() || undefined,
       ingredients: ingredients.trim(),
       allergens: allergens.trim(),
+      storageInstructions: storageInstructions.trim(),
       bakingSteps: bakingSteps
         .split("\n")
         .map((s) => s.trim())
@@ -182,6 +184,16 @@ export default function ShopProductForm({ productId, initial }: ShopProductFormP
               rows={2}
               className="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 outline-none focus:border-[#A61400] focus:ring-2 focus:ring-[#A61400]/10"
               placeholder="Wheat (gluten), milk, egg..."
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-stone-600">Storage &amp; preparation</span>
+            <textarea
+              value={storageInstructions}
+              onChange={(e) => setStorageInstructions(e.target.value)}
+              rows={2}
+              className="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 outline-none focus:border-[#A61400] focus:ring-2 focus:ring-[#A61400]/10"
+              placeholder="Keep frozen at -18°C until ready to use. Do not refreeze after thawing..."
             />
           </label>
           <label className="block">

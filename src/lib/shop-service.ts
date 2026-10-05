@@ -13,6 +13,7 @@ interface ShopProductDoc {
   imagePath: string;
   ingredients: string;
   allergens: string;
+  storageInstructions: string;
   bakingSteps: string[];
   active: boolean;
   sortOrder: number;
@@ -30,11 +31,24 @@ export interface ShopProductInput {
   image?: string;
   ingredients: string;
   allergens: string;
+  storageInstructions: string;
   bakingSteps: string[];
   active: boolean;
   /** undefined/null = unlimited stock. */
   stock?: number | null;
 }
+
+const STORAGE_INSTRUCTIONS =
+  "Keep frozen at -18°C until ready to use. Do not refreeze after thawing. Cook from frozen — do not defrost. Not suitable for microwave use.";
+
+const BAKING_STEPS = [
+  "Preheat the oven for 10 minutes.",
+  "Line a baking tray with parchment paper.",
+  "Place pies in a single layer, leaving space between each pie.",
+  "Egg wash the pies.",
+  "Bake at 220°C for 40–45 minutes, or until golden brown.",
+  "Allow to rest for 5 minutes before serving — product will be hot.",
+];
 
 const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = [
   {
@@ -46,14 +60,10 @@ const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = 
     packSize: "4 fzn pk",
     emoji: "🥧",
     image: "/food/beef_pie.png",
-    ingredients:
-      "Wheat flour, butter, minced beef (28%), potatoes, onions, carrots, egg, whole milk, beef stock, thyme, curry powder, white pepper, salt.",
-    allergens: "Wheat (gluten), milk, egg. Made in a kitchen that also handles nuts.",
-    bakingSteps: [
-      "Preheat to 200°C (180°C fan).",
-      "Bake from frozen, no thawing.",
-      "30–35 minutes until golden, rest 5 minutes.",
-    ],
+    ingredients: "Wheat flour (gluten), butter (milk), water, beef, potato, carrot, onion, chilli, salt, seasoning, vegetable oil.",
+    allergens: "Contains gluten & milk.",
+    storageInstructions: STORAGE_INSTRUCTIONS,
+    bakingSteps: BAKING_STEPS,
     active: true,
     sortOrder: 0,
     stock: null,
@@ -67,14 +77,10 @@ const SEED_PRODUCTS: (ShopProductInput & { id: string; sortOrder: number })[] = 
     packSize: "4 fzn pk",
     emoji: "🥧",
     image: "/food/chicken_pie.png",
-    ingredients:
-      "Wheat flour, butter, chicken breast (26%), potatoes, onions, carrots, peas, egg, whole milk, chicken stock, thyme, white pepper, salt.",
-    allergens: "Wheat (gluten), milk, egg. Made in a kitchen that also handles nuts.",
-    bakingSteps: [
-      "Preheat to 200°C (180°C fan).",
-      "Bake from frozen, no thawing.",
-      "30–35 minutes until golden, rest 5 minutes.",
-    ],
+    ingredients: "Wheat flour (gluten), butter (milk), water, chicken, potato, carrot, onion, chilli, salt, seasoning, vegetable oil.",
+    allergens: "Contains gluten & milk.",
+    storageInstructions: STORAGE_INSTRUCTIONS,
+    bakingSteps: BAKING_STEPS,
     active: true,
     sortOrder: 1,
     stock: null,
@@ -98,6 +104,7 @@ async function getCollection(): Promise<Collection<ShopProductDoc>> {
         imagePath: p.image ?? "",
         ingredients: p.ingredients,
         allergens: p.allergens,
+        storageInstructions: p.storageInstructions,
         bakingSteps: p.bakingSteps,
         active: p.active,
         sortOrder: p.sortOrder,
@@ -121,6 +128,7 @@ function docToProduct(doc: ShopProductDoc): ShopProduct & { active: boolean; sor
     image: doc.imagePath || undefined,
     ingredients: doc.ingredients,
     allergens: doc.allergens,
+    storageInstructions: doc.storageInstructions,
     bakingSteps: doc.bakingSteps,
     stock: doc.stock ?? null,
     active: doc.active,
@@ -172,6 +180,7 @@ export async function createShopProduct(input: ShopProductInput): Promise<string
     imagePath: input.image ?? "",
     ingredients: input.ingredients,
     allergens: input.allergens,
+    storageInstructions: input.storageInstructions,
     bakingSteps: input.bakingSteps,
     active: input.active,
     sortOrder: (max ?? -1) + 1,
@@ -197,6 +206,7 @@ export async function updateShopProduct(id: string, input: ShopProductInput): Pr
         imagePath: input.image ?? "",
         ingredients: input.ingredients,
         allergens: input.allergens,
+        storageInstructions: input.storageInstructions,
         bakingSteps: input.bakingSteps,
         active: input.active,
         stock: input.stock ?? null,

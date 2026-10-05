@@ -168,6 +168,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="mt-8">
             <AccordionSection title="Ingredients">{product.ingredients}</AccordionSection>
             <AccordionSection title="Allergens">{product.allergens}</AccordionSection>
+            <AccordionSection title="Storage & preparation">{product.storageInstructions}</AccordionSection>
             <AccordionSection title="Baking instructions">
               <ol className="list-decimal space-y-1 pl-5">
                 {product.bakingSteps.map((step, i) => (

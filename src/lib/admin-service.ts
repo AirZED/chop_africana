@@ -7,7 +7,9 @@ interface AdminUserDoc {
   _id: string;
   email: string;
   passwordHash: string;
-  role: AdminRole;
+  // Optional in the type because it genuinely can be absent on documents
+  // written before multi-admin roles existed — see the backfill below.
+  role?: AdminRole;
   createdAt: string;
 }
 
@@ -52,13 +54,23 @@ export async function verifyAdminCredentials(
   const user = await collection.findOne({ _id: email.trim().toLowerCase() });
   if (!user) return null;
   const ok = await bcrypt.compare(password, user.passwordHash);
-  return ok ? { email: user.email, role: user.role } : null;
+  if (!ok) return null;
+
+  // Accounts created before multi-admin roles existed have no `role` field in
+  // Mongo (findOne just returns undefined for it). Treat that as "owner" — the
+  // only role that existed back then — and backfill it in the same request so
+  // this is a one-time, self-healing fix rather than a permanent workaround.
+  if (!user.role) {
+    await collection.updateOne({ _id: user._id }, { $set: { role: "owner" } });
+  }
+
+  return { email: user.email, role: user.role ?? "owner" };
 }
 
 export async function listAdminUsers(): Promise<AdminUser[]> {
   const collection = await getCollection();
   const docs = await collection.find({}).sort({ createdAt: 1 }).toArray();
-  return docs.map((d) => ({ email: d.email, role: d.role, createdAt: d.createdAt }));
+  return docs.map((d) => ({ email: d.email, role: d.role ?? "owner", createdAt: d.createdAt }));
 }
 
 export async function createAdminUser(email: string, password: string, role: AdminRole): Promise<void> {

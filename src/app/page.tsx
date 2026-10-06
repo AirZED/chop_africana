@@ -54,8 +54,9 @@ export default function HomePage() {
                 Beef Pies
               </h2>
               <p className="mt-4 max-w-sm text-white/80">
-                Beef and chicken pies, ready to go from freezer to oven. Order
-                online or pick them up at a supermarket near you.
+                Hearty, flavour-packed meat pies. Ready to go from freezer to
+                oven, save time and skip the stress. Order online or grab one
+                at your local supermarket.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
@@ -101,8 +102,10 @@ export default function HomePage() {
                 Chicken Pies
               </h2>
               <p className="mt-4 max-w-sm text-stone-600 text-[1.1rem]">
-                Beef and chicken pies, ready to go from freezer to oven. Order
-                online or pick them up at a supermarket near you.
+                Delicious pies packed with tender chicken and full of flavour.
+                Ready to go straight from the freezer to the oven, save time
+                and skip the stress. Order online or grab one at your local
+                supermarket.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link

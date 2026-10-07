@@ -93,7 +93,7 @@ export default function PaymentMethodSection({ total, disabled, onCreateIntent, 
       }
       const { error: confirmError, paymentIntent } = await stripeInstance.confirmCardPayment(
         cs,
-        { payment_method: ev.paymentMethod.id },
+        { payment_method: ev.paymentMethod.id, return_url: `${window.location.origin}/confirmation` },
         { handleActions: false }
       );
       if (confirmError) {
@@ -105,7 +105,9 @@ export default function PaymentMethodSection({ total, disabled, onCreateIntent, 
       ev.complete("success");
 
       if (paymentIntent.status === "requires_action") {
-        const { error: actionError } = await stripeInstance.confirmCardPayment(cs);
+        const { error: actionError } = await stripeInstance.confirmCardPayment(cs, {
+          return_url: `${window.location.origin}/confirmation`,
+        });
         if (actionError) {
           setError(actionError.message ?? "Payment failed. Please try again.");
           setPhase("select");

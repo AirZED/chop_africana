@@ -136,7 +136,7 @@ export default function HomePage() {
           <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
             <div className="relative aspect-[4/5] overflow-hidden rounded-3xl">
               <Image
-                src="/food/hungry_now.png"
+                src="/food/hungry_now.jpg"
                 alt="Café table with pie and a drink"
                 fill
                 sizes="(min-width: 768px) 50vw, 100vw"
